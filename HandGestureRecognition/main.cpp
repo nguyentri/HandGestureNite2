@@ -1,18 +1,18 @@
 /*******************************************************************************
 *                                                                              *
-*   PrimeSense NiTE 2.0 - Hand Viewer Sample                                   *
+*   PrimeSense NiTE 2.0 - Hand HandViewer Sample                                   *
 *   Copyright (C) 2012 PrimeSense Ltd.                                         *
 *                                                                              *
 *******************************************************************************/
 
-#include "Viewer.h"
+#include "HandViewer.h"
 
 int main(int argc, char** argv)
 {
 	openni::Status rc = openni::STATUS_OK;
-	HandGesture HandGesture("Hand Geture");
+	HandViewer HandViewer("Hand Geture");
 
-	rc = HandGesture.Init(argc, argv);
+	rc = HandViewer.Init(argc, argv);
 	if (rc != openni::STATUS_OK)
 	{
 		return 1;
@@ -20,6 +20,6 @@ int main(int argc, char** argv)
 
 	for(;;)
 	{
-		HandGesture.Run();
+		HandViewer.Run();
 	}
 }

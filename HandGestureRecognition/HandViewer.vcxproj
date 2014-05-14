@@ -183,11 +183,13 @@ xcopy /D /F /Y "$(ProjectDir)\glut64.dll" "$(OutDir)"
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="HandViewer.cpp" />
     <ClCompile Include="main.cpp" />
-    <ClCompile Include="Viewer.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Viewer.h" />
+    <ClInclude Include="HandViewer.h" />
+    <ClInclude Include="HistoryBuffer.h" />
+    <ClInclude Include="Utilities.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
