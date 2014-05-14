@@ -73,20 +73,20 @@ openni::Status HandViewer::Init(int argc, char **argv)
 		return rc;
 	}
 
-	//rc = m_depthStream.create(m_device, openni::SENSOR_DEPTH);
-	//if (rc == openni::STATUS_OK)
-	//{
-	//	rc = m_depthStream.start();
-	//	if (rc != openni::STATUS_OK)
-	//	{
-	//		printf("SimpleViewer: Couldn't start depth stream:\n%s\n", openni::OpenNI::getExtendedError());
-	//		m_depthStream.destroy();
-	//	}
-	//}
-	//else
-	//{
-	//	printf("SimpleViewer: Couldn't find depth stream:\n%s\n", openni::OpenNI::getExtendedError());
-	//}
+	rc = m_depthStream.create(m_device, openni::SENSOR_DEPTH);
+	if (rc == openni::STATUS_OK)
+	{
+		rc = m_depthStream.start();
+		if (rc != openni::STATUS_OK)
+		{
+			printf("SimpleViewer: Couldn't start depth stream:\n%s\n", openni::OpenNI::getExtendedError());
+			m_depthStream.destroy();
+		}
+	}
+	else
+	{
+		printf("SimpleViewer: Couldn't find depth stream:\n%s\n", openni::OpenNI::getExtendedError());
+	}
 
 	nite::NiTE::initialize();
 
@@ -97,8 +97,8 @@ openni::Status HandViewer::Init(int argc, char **argv)
 
 
 	m_pHandTracker->startGestureDetection(nite::GESTURE_WAVE);
-//	m_pHandTracker->startGestureDetection(nite::GESTURE_CLICK);
-//	m_pHandTracker->startGestureDetection(nite::GESTURE_HAND_RAISE);
+	m_pHandTracker->startGestureDetection(nite::GESTURE_CLICK);
+	m_pHandTracker->startGestureDetection(nite::GESTURE_HAND_RAISE);
 
 	return InitOpenCV(argc, argv);
 
@@ -120,13 +120,13 @@ openni::Status HandViewer::Run()	//Does not return
 		//external function called for get hand gesture
 		//Call hand processing
 		filter_and_threshold(&HandGetureSt);
-		find_contour(&HandGetureSt);
-		find_convex_hull(&HandGetureSt);
-		fingertip(&HandGetureSt);
+		//find_contour(&HandGetureSt);
+		//find_convex_hull(&HandGetureSt);
+		//fingertip(&HandGetureSt);
 		//find_fingers(&cvctx);
 		//FindPalm(&HandGetureSt);
 		//Display the OpenCV texture map
-		HandDisplay(&HandGetureSt);
+		//HandDisplay(&HandGetureSt);
 	}
 	//else
 	{
@@ -208,8 +208,6 @@ void HandViewer::HandSegmentation()
 				printf("Found hand %d\n", hand.getId());
 				nite::HandId id = hand.getId();
 				g_histories[hand.getId()] = new HistoryBuffer<HISBUFFER>;
-				handPoint = cvPoint2D32f(0,0);
-				cvhandPoint = cvPoint(0, 0);
 			}
 			this->hand3DPoint = hand.getPosition();
 			// Add to history
@@ -223,7 +221,8 @@ void HandViewer::HandSegmentation()
 			// Convert hand point to int
 			cvhandPoint = cvPointFrom32f(handPoint);
 		
-			//this->getHandThreshold();
+			//Get hand
+			this->getHandThreshold();
 
 			cvCircle(this->pRgbImg, cvhandPoint, 2, RED, 4, CV_AA, 0);
 		}
@@ -298,7 +297,7 @@ nite::Status HandViewer::getHandThreshold()
 		for (x = rect.x; x <  (rect.x + rect.width); ++x, pImg_t++)
 		{
 			pixelValue = *pImg_t;
-			if (pixelValue != 0 && (pixelValue/DEPTH_SCALE_FACTOR) < (handDepthPoint.d + 100000/handDepthPoint.d))
+			if (pixelValue != 0 && (pixelValue/DEPTH_SCALE_FACTOR) < (handDepthPoint.d + 100000/handDepthPoint.d) && y < (rect.y + rect.height - 10))
 			{	
 				*pImg_t = 255;
 			}
