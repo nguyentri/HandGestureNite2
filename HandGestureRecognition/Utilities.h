@@ -10,13 +10,16 @@
 
 #include <stdio.h>
 #include <OpenNI.h>
+
 /*Open CV include */
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc_c.h>
 #include <opencv2/highgui/highgui_c.h>
+//handgesture class
+//#include "GestureRecognition.h"
 
-
-#define BLACK   CV_RGB(255, 255, 255)
+#define WHITE   CV_RGB(255, 255, 255)
+#define BLACK	CV_RGB(0, 0 ,0)
 #define RED     CV_RGB(255, 0, 0)
 #define GREEN   CV_RGB(0, 255, 0)
 #define BLUE    CV_RGB(0, 0, 255)

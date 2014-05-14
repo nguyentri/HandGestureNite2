@@ -56,7 +56,7 @@ public:
 protected:
 	virtual void HandSegmentation();
 
-	virtual void HandDisplay();
+	virtual void HandViewerDisplay();
 
 	virtual void OnKey(unsigned char key, int x, int y);
 

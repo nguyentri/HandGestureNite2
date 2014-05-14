@@ -7,7 +7,8 @@
 
 #include <map>
 #include "HandViewer.h"
-#include <Utilities.h>
+#include "Utilities.h"
+#include "GestureRecognition.h"
 
 using namespace std;
 
@@ -22,8 +23,6 @@ bool g_drawFrameId = false;
 int g_nXRes = 0, g_nYRes = 0;
 
 openni::VideoStream m_depthStream;
-
-
 
 void HandViewer::cvKeyboard(unsigned char key, int x, int y)
 {
@@ -74,6 +73,21 @@ openni::Status HandViewer::Init(int argc, char **argv)
 		return rc;
 	}
 
+	//rc = m_depthStream.create(m_device, openni::SENSOR_DEPTH);
+	//if (rc == openni::STATUS_OK)
+	//{
+	//	rc = m_depthStream.start();
+	//	if (rc != openni::STATUS_OK)
+	//	{
+	//		printf("SimpleViewer: Couldn't start depth stream:\n%s\n", openni::OpenNI::getExtendedError());
+	//		m_depthStream.destroy();
+	//	}
+	//}
+	//else
+	//{
+	//	printf("SimpleViewer: Couldn't find depth stream:\n%s\n", openni::OpenNI::getExtendedError());
+	//}
+
 	nite::NiTE::initialize();
 
 	if (m_pHandTracker->create(&m_device) != nite::STATUS_OK)
@@ -82,25 +96,9 @@ openni::Status HandViewer::Init(int argc, char **argv)
 	}
 
 
-	rc = m_depthStream.create(m_device, openni::SENSOR_DEPTH);
-	if (rc == openni::STATUS_OK)
-	{
-		rc = m_depthStream.start();
-		if (rc != openni::STATUS_OK)
-		{
-			printf("SimpleViewer: Couldn't start depth stream:\n%s\n", openni::OpenNI::getExtendedError());
-			m_depthStream.destroy();
-		}
-	}
-	else
-	{
-		printf("SimpleViewer: Couldn't find depth stream:\n%s\n", openni::OpenNI::getExtendedError());
-	}
-
-
 	m_pHandTracker->startGestureDetection(nite::GESTURE_WAVE);
-	m_pHandTracker->startGestureDetection(nite::GESTURE_CLICK);
-	m_pHandTracker->startGestureDetection(nite::GESTURE_HAND_RAISE);
+//	m_pHandTracker->startGestureDetection(nite::GESTURE_CLICK);
+//	m_pHandTracker->startGestureDetection(nite::GESTURE_HAND_RAISE);
 
 	return InitOpenCV(argc, argv);
 
@@ -110,7 +108,31 @@ openni::Status HandViewer::Run()	//Does not return
 {
 	int key;
 	this->HandSegmentation();
-	this->HandDisplay();
+	//Map private data to external data
+	//if (this->handFound == true)
+	{
+		HandGetureSt.dfdisthreshold = 5000/handDepthPoint.d;
+		HandGetureSt.HandPoint = cvPoint(this->handDepthPoint.p.x, this->handDepthPoint.p.y);
+		//cvCopy(this->pRgbImg, HandGetureSt.image, NULL); 
+		//cvCopy(this->pThImg, HandGetureSt.thr_image, NULL);
+		HandGetureSt.image = this->pRgbImg;
+		HandGetureSt.thr_image = this->pThImg;
+		//external function called for get hand gesture
+		//Call hand processing
+		filter_and_threshold(&HandGetureSt);
+		find_contour(&HandGetureSt);
+		find_convex_hull(&HandGetureSt);
+		fingertip(&HandGetureSt);
+		//find_fingers(&cvctx);
+		//FindPalm(&HandGetureSt);
+		//Display the OpenCV texture map
+		HandDisplay(&HandGetureSt);
+	}
+	//else
+	{
+		this->HandViewerDisplay();
+	}
+
 	key = cvWaitKey(1);
 	HandViewer::cvKeyboard(key,NULL,NULL);
 	return openni::STATUS_OK;
@@ -151,6 +173,9 @@ void HandViewer::HandSegmentation()
 	{
 		if (gestures[i].isComplete())
 		{
+			const nite::Point3f& position = gestures[i].getCurrentPosition();
+			printf("Gesture %d at (%f,%f,%f)\n", gestures[i].getType(), position.x, position.y, position.z);
+
 			nite::HandId newId;
 			m_pHandTracker->startHandTracking(gestures[i].getCurrentPosition(), &newId);
 		}
@@ -171,9 +196,13 @@ void HandViewer::HandSegmentation()
 			g_histories.erase(g_histories.find(id));
 			delete pHistory;
 			handPointClear();
+
+			this->handFound = false;
 		}
 		else
 		{
+			this->handFound = true;
+
 			if (hand.isNew())
 			{
 				printf("Found hand %d\n", hand.getId());
@@ -194,7 +223,7 @@ void HandViewer::HandSegmentation()
 			// Convert hand point to int
 			cvhandPoint = cvPointFrom32f(handPoint);
 		
-			this->getHandThreshold();
+			//this->getHandThreshold();
 
 			cvCircle(this->pRgbImg, cvhandPoint, 2, RED, 4, CV_AA, 0);
 		}
@@ -229,10 +258,13 @@ void HandViewer::DrawHistory(nite::HandTracker* pHandTracker, int id, HistoryBuf
 }
 
 
-void HandViewer:: HandDisplay()
+void HandViewer:: HandViewerDisplay()
 {	
 	cvShowImage("DepthImage", this->pRgbImg);	
-	cvShowImage("ThresholdImage", this->pThImg);
+	if(this->handFound == true)
+	{
+		cvShowImage("ThresholdImage", this->pThImg);
+	}
 }
 
 nite::Status HandViewer::getHandThreshold()
@@ -266,7 +298,7 @@ nite::Status HandViewer::getHandThreshold()
 		for (x = rect.x; x <  (rect.x + rect.width); ++x, pImg_t++)
 		{
 			pixelValue = *pImg_t;
-			if (*pImg_t != 0 && (*pImg_t/DEPTH_SCALE_FACTOR) < (handDepthPoint.d + 100000/handDepthPoint.d))
+			if (pixelValue != 0 && (pixelValue/DEPTH_SCALE_FACTOR) < (handDepthPoint.d + 100000/handDepthPoint.d))
 			{	
 				*pImg_t = 255;
 			}

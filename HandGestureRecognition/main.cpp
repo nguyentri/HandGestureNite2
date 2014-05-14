@@ -6,6 +6,7 @@
 *******************************************************************************/
 
 #include "HandViewer.h"
+#include "GestureRecognition.h"
 
 int main(int argc, char** argv)
 {
@@ -17,6 +18,13 @@ int main(int argc, char** argv)
 	{
 		return 1;
 	}
+
+	
+	/*Hand processing initialization. */
+	init_recording(&HandGetureSt);
+	//init_windows();
+	init_pHandGestureSt(&HandGetureSt);
+
 
 	for(;;)
 	{
