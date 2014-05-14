@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <OpenNI.h>
 
+#define BLACK   CV_RGB(255, 255, 255)
 #define RED     CV_RGB(255, 0, 0)
 #define GREEN   CV_RGB(0, 255, 0)
 #define BLUE    CV_RGB(0, 0, 255)
@@ -18,7 +19,7 @@
 #define PURPLE  CV_RGB(255, 0, 255)
 #define GREY    CV_RGB(200, 200, 200)
 
-const float DEPTH_SCALE_FACTOR = 255./4096.;
+const float DEPTH_SCALE_FACTOR = 255./8000.;
 
 
 void calculateHistogram(int* pHistogram, int histogramSize, const openni::VideoFrameRef& depthFrame)

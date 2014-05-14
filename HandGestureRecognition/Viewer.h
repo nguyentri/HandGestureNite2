@@ -15,11 +15,17 @@
 
 #include "OpenNI.h"
 #include "NiTE.h"
+#include "HistoryBuffer.h"
 
 
 #define MAX_DEPTH 4000
 #define W		  640
 #define H	      480
+
+
+
+#define HISBUFFER  20
+extern std::map<int, HistoryBuffer<HISBUFFER> *> g_histories;
 
 
 typedef struct cvDepthPoint
@@ -35,6 +41,8 @@ typedef struct cvImgPoint
 }cvImgPoint;
 
 
+//	openni::VideoStream depth, color;
+extern openni::VideoStream m_depthStream;
 
 class HandGesture
 {
@@ -55,9 +63,18 @@ protected:
 
 	void Finalize();
 
+	/*OpenNI device. */
+	//openni::Device&			m_device;
+	//openni::VideoStream&			m_depthStream;
+	//openni::VideoStream&			m_colorStream;
+	//openni::VideoStream**		m_streams;
+
+	void DrawHistory(nite::HandTracker* pHandTracker, int id, HistoryBuffer<HISBUFFER>* pHistory);
+
 private:
 	HandGesture(const HandGesture&);
 	HandGesture& operator=(HandGesture&);
+	void handPointClear(){hand3DPoint.x  = 0; hand3DPoint.y = 0; hand3DPoint.z = 0;}; 
 
 	static HandGesture* ms_self;
 	NitePoint3f hand3DPoint;
@@ -66,7 +83,7 @@ private:
 	static void cvDisplay();
 	static void cvKeyboard(unsigned char key, int x, int y);
 
-	void getHandThreshold(openni::VideoFrameRef depthFrame);
+	nite::Status HandGesture::getHandThreshold(openni::VideoFrameRef depthFrame);
 
 	int				m_pDepthHist[MAX_DEPTH];
 	char			m_strSampleName[ONI_MAX_STR];
@@ -74,11 +91,13 @@ private:
 	openni::Device		m_device;
 	nite::HandTracker* m_pHandTracker;
 
+	int handOffset;
 
-	cvDepthPoint handPoint_l;
+	cvDepthPoint handDepthPoint;
 	IplImage* pRgbImg;
 	IplImage* pImg;
  	IplImage* pThImg;
+
 };
 
 

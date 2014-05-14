@@ -11,10 +11,9 @@
 
 using namespace std;
 
-
-#define HISBUFFER  1
-
 HandGesture* HandGesture::ms_self = NULL;
+
+std::map<int, HistoryBuffer<HISBUFFER> *> g_histories;
 
 bool g_drawDepth = true;
 bool g_smoothing = false;
@@ -22,6 +21,7 @@ bool g_drawFrameId = false;
 
 int g_nXRes = 0, g_nYRes = 0;
 
+openni::VideoStream m_depthStream;
 
 void HandGesture::cvDisplay()
 {
@@ -58,7 +58,6 @@ void HandGesture::Finalize()
 
 openni::Status HandGesture::Init(int argc, char **argv)
 {
-
 	openni::OpenNI::initialize();
 
 	const char* deviceUri = openni::ANY_DEVICE;
@@ -85,9 +84,26 @@ openni::Status HandGesture::Init(int argc, char **argv)
 		return openni::STATUS_ERROR;
 	}
 
+
+	rc = m_depthStream.create(m_device, openni::SENSOR_DEPTH);
+	if (rc == openni::STATUS_OK)
+	{
+		rc = m_depthStream.start();
+		if (rc != openni::STATUS_OK)
+		{
+			printf("SimpleViewer: Couldn't start depth stream:\n%s\n", openni::OpenNI::getExtendedError());
+			m_depthStream.destroy();
+		}
+	}
+	else
+	{
+		printf("SimpleViewer: Couldn't find depth stream:\n%s\n", openni::OpenNI::getExtendedError());
+	}
+
+
 	m_pHandTracker->startGestureDetection(nite::GESTURE_WAVE);
 	m_pHandTracker->startGestureDetection(nite::GESTURE_CLICK);
-	m_pHandTracker->startGestureDetection(nite::GESTURE_HAND_RAISE);
+//	m_pHandTracker->startGestureDetection(nite::GESTURE_HAND_RAISE);
 
 	return InitOpenCV(argc, argv);
 
@@ -106,8 +122,8 @@ void HandGesture::Display()
 {
 	nite::HandTrackerFrameRef handFrame;
 	openni::VideoFrameRef depthFrame;
-
 	nite::Status rc = m_pHandTracker->readFrame(&handFrame);
+
 
 	IplImage* pDepthImg = cvCreateImage(cvSize(W,H), IPL_DEPTH_16U, 1);
 
@@ -152,11 +168,10 @@ void HandGesture::Display()
 		{
 			printf("Lost hand %d\n", hand.getId());
 			nite::HandId id = hand.getId();
-			//HistoryBuffer<HISBUFFER>* pHistory = g_histories[id];
-			//g_histories.erase(g_histories.find(id));
-			//delete pHistory;
-			handPoint = cvPoint2D32f(0,0);
-			cvhandPoint = cvPoint(0, 0);
+			HistoryBuffer<HISBUFFER>* pHistory = g_histories[id];
+			g_histories.erase(g_histories.find(id));
+			delete pHistory;
+			handPointClear();
 		}
 		else
 		{
@@ -164,28 +179,27 @@ void HandGesture::Display()
 			{
 				printf("Found hand %d\n", hand.getId());
 				nite::HandId id = hand.getId();
-				//g_histories[hand.getId()] = new HistoryBuffer<HISBUFFER>;
-				//handPoint = cvPoint2D32f(0,0);
-				//cvhandPoint = cvPoint(0, 0);
-				hand3DPoint = hand.getPosition();
+				g_histories[hand.getId()] = new HistoryBuffer<HISBUFFER>;
+				handPoint = cvPoint2D32f(0,0);
+				cvhandPoint = cvPoint(0, 0);
 			}
-
+			this->hand3DPoint = hand.getPosition();
 			// Add to history
-			//HistoryBuffer<HISBUFFER>* pHistory = g_histories[hand.getId()];
-			//pHistory->AddPoint(hand.getPosition());
+			HistoryBuffer<HISBUFFER>* pHistory = g_histories[hand.getId()];
+			pHistory->AddPoint(hand.getPosition());
 			// Draw history
+			DrawHistory(m_pHandTracker, hand.getId(), pHistory);
 
-			printf("Gesture %d at (%f,%f,%f)\n", hand.getId(), hand3DPoint.x, hand3DPoint.y, hand3DPoint.z);
-
+			//Get coordiation of hand point
 			m_pHandTracker->convertHandCoordinatesToDepth(hand3DPoint.x, hand3DPoint.y, hand3DPoint.z, (float*)&handPoint.x, (float*)&handPoint.y);
-			//openni::CoordinateConverter::convertWorldToDepth(depthFrame, hand3DPoint.x, hand3DPoint.y, hand3DPoint.z, &handPoint_l.p.x, &handPoint_l.p.y, &handPoint_l.d);
-
+			// Convert hand point to int
 			cvhandPoint = cvPointFrom32f(handPoint);
 
-			handPoint_l.d = pDepthImg->imageData[(cvhandPoint.x*cvhandPoint.y - 1)<<2];
+			//cvShowImage("ThresholdImage", this->pThImg);
 
-			printf("Gesture %d at (%d,%d,%d)\n", hand.getId(), cvhandPoint.x, cvhandPoint.y, handPoint_l.d);
+			printf("Gesture %d at (%d,%d,%d)\n", hand.getId(), cvhandPoint.x, cvhandPoint.y, handDepthPoint.d);
 			
+			getHandThreshold(depthFrame);
 
 			cvCircle(this->pRgbImg, cvhandPoint, 2, RED, 4, CV_AA, 0);
 		}
@@ -194,36 +208,101 @@ void HandGesture::Display()
 	cvShowImage("DepthImage", this->pRgbImg);
 }
 
-
-
-
-
-void HandGesture::getHandThreshold(openni::VideoFrameRef depthFrame)
+void cvDrawSetofPoints(IplImage* ImgDraw, CvPoint* points, CvScalar color, int point_Num)
 {
-	// Get depth map
-	const openni::DepthPixel* pDepth = (const openni::DepthPixel*)depthFrame.getData();
-	char* pImg_t =  this->pImg->imageData;
-
-	int nHistValue = 0;
-	for (int y = 0; y < H; ++y)
+	CvPoint p1 = points[0];
+	CvPoint p2;
+	for(int idx = 1; idx < point_Num ; idx++)
 	{
-		for (int x = 0; x < W; ++x, pImg_t++, pDepth++)
+		p2 = points[idx];
+		cvLine(ImgDraw, p1, p2, YELLOW, 2, 8, 0);
+		p1 = p2;
+	}
+}
+
+
+int Colors[][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 1, 1}};
+int colorCount = 3;
+
+void HandGesture::DrawHistory(nite::HandTracker* pHandTracker, int id, HistoryBuffer<HISBUFFER>* pHistory)
+{
+	CvPoint2D32f Floatcoordinates = cvPoint2D32f(0,0);
+
+	int hisBufSize = pHistory->GetSize();
+
+	CvPoint* coordinates = new CvPoint[hisBufSize];
+
+	CvScalar color = cvScalar (255*(Colors[id % colorCount][0], 255*Colors[id % colorCount][1], 255*Colors[id % colorCount][2]));
+	color = YELLOW;
+
+	for (int i = 0; i < pHistory->GetSize(); ++i)
+	{
+		const nite::Point3f& position = pHistory->operator[](i);
+		pHandTracker->convertHandCoordinatesToDepth(position.x, position.y, position.z, &Floatcoordinates.x, &Floatcoordinates.y);
+		coordinates[i] = cvPointFrom32f(Floatcoordinates);
+	}
+
+	cvDrawSetofPoints(this->pRgbImg, coordinates, color, hisBufSize);
+
+}
+
+ nite::Status HandGesture::getHandThreshold(openni::VideoFrameRef depthFrame)
+{
+	// Get hand depth point
+	openni::CoordinateConverter::convertWorldToDepth(m_depthStream, hand3DPoint.x, hand3DPoint.y, hand3DPoint.z, &handDepthPoint.p.x, &handDepthPoint.p.y, &handDepthPoint.d);
+	// Hand offset 
+	this->handOffset = 60000/handDepthPoint.d;
+
+	int y, x;
+	CvRect rect;
+
+	if(this->handDepthPoint.p.y < this->handOffset || handDepthPoint.p.x < handOffset)
+	{
+		rect.x = 0;
+		rect.y = 0;
+		rect.height = handOffset<<1;
+		rect.width = handOffset<<1;		
+	}
+	else
+	{
+		//Get handRoi image
+		rect.x = handDepthPoint.p.x - handOffset;
+		rect.y = handDepthPoint.p.y - handOffset;
+		rect.height = handOffset<<1;
+		rect.width = handOffset<<1;
+	}
+
+	if(this->handOffset !=0)
+	{
+		this->pThImg = cvCreateImage(cvSize(rect.height, rect.height),IPL_DEPTH_8U, 1);
+		uchar* pImg_t =  (uchar*)this->pThImg->imageData;
+		cvSetImageROI(this->pImg, rect);
+		cvCopy(this->pImg, this->pThImg, NULL);
+		cvResetImageROI(this->pImg);
+
+		int pixelValue = 0;
+		for (y = rect.y; y <  (rect.y + rect.height); ++y)
 		{
-			if (*pDepth !=0)
-			{	
-				int nHistValue = (int)m_pDepthHist[*pDepth];
-				*pImg_t = nHistValue;
-//				*pImg_t++ = nHistValue;
-//				*pImg_t++ = nHistValue;
-			}
-			else
+			for (x = rect.x; x <  (rect.x + rect.width); ++x, pImg_t++)
 			{
-				*pImg_t = 0;
-//				*pImg_t++ = 0;	
-//				*pImg_t++ = 0;
+				pixelValue = *pImg_t;
+				if (*pImg_t != 0 && (*pImg_t/DEPTH_SCALE_FACTOR) < (handDepthPoint.d + 100000/handDepthPoint.d))
+				{	
+					*pImg_t = 255;
+				}
+				else
+				{
+					*pImg_t = 0;
+				}
 			}
 		}
+		return nite::STATUS_OK;
 	}
+	else
+	{
+		return nite::STATUS_ERROR;
+	}
+
 }
 
 
@@ -262,9 +341,9 @@ openni::Status HandGesture::InitOpenCV(int argc, char **argv)
 {
 	// Initialize display windows
 	cvNamedWindow("DepthImage", CV_WINDOW_NORMAL);
-//	cvNamedWindow("ThresholdImage", CV_WINDOW_NORMAL);
-//	cvMoveWindow("DepthImage", 20, 50);
-//	cvMoveWindow("ThresholdImage", 800, 50);
+	cvNamedWindow("ThresholdImage", CV_WINDOW_NORMAL);
+	cvMoveWindow("DepthImage", 20, 50);
+	cvMoveWindow("ThresholdImage", 800, 50);
 
 	// Initialize pointers that point to images
 	this->pImg = cvCreateImage(cvSize(W, H), IPL_DEPTH_8U, 1);
