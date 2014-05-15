@@ -98,11 +98,12 @@ typedef struct HandGesture {
 	int		hand_radius;
 	int		num_defects;
 	int		dfdisthreshold;
+	int		handDepth;
 	std::vector<CvPoint> thresholdPoints;
 	CvPoint HandPoint;
 } HandGetureTypeSt;
 
-extern HandGetureTypeSt  HandGetureSt;
+extern HandGetureTypeSt  HandGestureSt;
 
 /*Function to initialize recording video. */
 extern void init_recording(HandGetureTypeSt *pHandGestureSt);

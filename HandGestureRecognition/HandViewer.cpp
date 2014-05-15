@@ -48,8 +48,8 @@ void HandViewer::Finalize()
 	openni::OpenNI::shutdown();
 
 	/*Release structure images */
-	cvReleaseImage(&pImg);
-	cvReleaseImage(&pThImg);
+	//cvReleaseImage(&pImg);
+	//cvReleaseImage(&pThImg);
 }
 
 openni::Status HandViewer::Init(int argc, char **argv)
@@ -97,8 +97,8 @@ openni::Status HandViewer::Init(int argc, char **argv)
 
 
 	m_pHandTracker->startGestureDetection(nite::GESTURE_WAVE);
-	m_pHandTracker->startGestureDetection(nite::GESTURE_CLICK);
-	m_pHandTracker->startGestureDetection(nite::GESTURE_HAND_RAISE);
+	//m_pHandTracker->startGestureDetection(nite::GESTURE_CLICK);
+	//m_pHandTracker->startGestureDetection(nite::GESTURE_HAND_RAISE);
 
 	return InitOpenCV(argc, argv);
 
@@ -109,26 +109,27 @@ openni::Status HandViewer::Run()	//Does not return
 	int key;
 	this->HandSegmentation();
 	//Map private data to external data
-	//if (this->handFound == true)
+	if (this->handFound == true)
 	{
-		HandGetureSt.dfdisthreshold = 5000/handDepthPoint.d;
-		HandGetureSt.HandPoint = cvPoint(this->handDepthPoint.p.x, this->handDepthPoint.p.y);
-		//cvCopy(this->pRgbImg, HandGetureSt.image, NULL); 
-		//cvCopy(this->pThImg, HandGetureSt.thr_image, NULL);
-		HandGetureSt.image = this->pRgbImg;
-		HandGetureSt.thr_image = this->pThImg;
+		HandGestureSt.dfdisthreshold = 5000/handDepthPoint.d;
+		HandGestureSt.HandPoint = cvPoint(this->handDepthPoint.p.x, this->handDepthPoint.p.y);
+		//cvCopy(this->pRgbImg, HandGestureSt.image, NULL); 
+		//cvCopy(this->pThImg, HandGestureSt.thr_image, NULL);
+		HandGestureSt.image = this->pRgbImg;
+		HandGestureSt.thr_image = this->pThImg;
+		HandGestureSt.handDepth = this->handDepthPoint.d;
 		//external function called for get hand gesture
 		//Call hand processing
-		filter_and_threshold(&HandGetureSt);
-		//find_contour(&HandGetureSt);
-		//find_convex_hull(&HandGetureSt);
-		//fingertip(&HandGetureSt);
+		filter_and_threshold(&HandGestureSt);
+		find_contour(&HandGestureSt);
+		find_convex_hull(&HandGestureSt);
+		fingertip(&HandGestureSt);
 		//find_fingers(&cvctx);
-		//FindPalm(&HandGetureSt);
+		FindPalm(&HandGestureSt);
 		//Display the OpenCV texture map
-		//HandDisplay(&HandGetureSt);
+		HandDisplay(&HandGestureSt);
 	}
-	//else
+	else
 	{
 		this->HandViewerDisplay();
 	}
@@ -272,7 +273,7 @@ nite::Status HandViewer::getHandThreshold()
 	openni::CoordinateConverter::convertWorldToDepth(m_depthStream, hand3DPoint.x, hand3DPoint.y, hand3DPoint.z, &handDepthPoint.p.x, &handDepthPoint.p.y, &handDepthPoint.d);
 
 	// Hand offset 
-	this->handOffset = 60000/handDepthPoint.d;
+	this->handOffset = 64000/handDepthPoint.d;
 
 	int y= 0 , x = 0;
 	CvRect rect;
@@ -297,7 +298,7 @@ nite::Status HandViewer::getHandThreshold()
 		for (x = rect.x; x <  (rect.x + rect.width); ++x, pImg_t++)
 		{
 			pixelValue = *pImg_t;
-			if (pixelValue != 0 && (pixelValue/DEPTH_SCALE_FACTOR) < (handDepthPoint.d + 100000/handDepthPoint.d) && y < (rect.y + rect.height - 10))
+			if (pixelValue != 0 && (pixelValue/DEPTH_SCALE_FACTOR) < (handDepthPoint.d + 100000/handDepthPoint.d) && y < (rect.y + rect.height - 10000/handDepthPoint.d))
 			{	
 				*pImg_t = 255;
 			}
@@ -352,7 +353,7 @@ openni::Status HandViewer::InitOpenCV(int argc, char **argv)
 
 	// Initialize pointers that point to images
 	this->pImg = cvCreateImage(cvSize(W, H), IPL_DEPTH_8U, 1);
-	this->pThImg = cvCreateImage(cvSize(W, H), IPL_DEPTH_8U, 1);
+	//this->pThImg = cvCreateImage(cvSize(W, H), IPL_DEPTH_8U, 1);
 	this->pRgbImg = cvCreateImage(cvSize(W, H), IPL_DEPTH_8U, 3);
 
 	return openni::STATUS_OK;
