@@ -71,7 +71,7 @@ void filter_and_threshold(HandGetureTypeSt *pHandGestureSt)
 {
 //	cvDilate(pHandGestureSt->thr_image,pHandGestureSt->thr_image,0, 0);  //¿±µÈ 
 
- 	cvSmooth(pHandGestureSt->thr_image, pHandGestureSt->thr_image, CV_MEDIAN, 7, 7, 0.5, 0.5);
+ 	cvSmooth(pHandGestureSt->thr_image, pHandGestureSt->thr_image, CV_MEDIAN, 3, 3, 0, 0);
 
  //   cvErode(pHandGestureSt->thr_image,pHandGestureSt->thr_image,0,1);
 }
@@ -138,7 +138,7 @@ void find_contour(HandGetureTypeSt *pHandGestureSt)
 		//IplImage* resImg = getThreshImg(pHandGestureSt->contour, pHandGestureSt->thr_image);
 
 		//Get list of points of threshold
-		pHandGestureSt->thresholdPoints .clear();
+		pHandGestureSt->thresholdPoints.clear();
 		pHandGestureSt->thresholdPoints = getListofPointofThImg(pHandGestureSt->thr_image, armcenter);
 		//cvSaveImage("ThresholdImage.JPG", resImg);
 
@@ -310,9 +310,8 @@ void fingertip(HandGetureTypeSt *pHandGestureSt)
 	uint16_t contTotal =  pHandGestureSt->Orgcontour->total;
 	uint16_t contStep = pHandGestureSt->dfdisthreshold<<1;
 
-	
-	//y=3/*x+60
-	float thresholdAngle = float(3)*pHandGestureSt->handDepth/200 + 60;
+	//y=3/200*x+60
+	float thresholdAngle = float(3)*pHandGestureSt->handDepth/200 + 75;
 
      for(i = 0;i < contTotal; i++)
      {
@@ -323,7 +322,7 @@ void fingertip(HandGetureTypeSt *pHandGestureSt)
 		 angle = cvAngleDeg2D((const CvPoint*)(p), (const CvPoint*)(p1), (const CvPoint*)(p2));
 
          ///////////////////////////////////if start
-         if(angle < 60)
+         if(angle < thresholdAngle)
          {
             if(!signal)//  if it is the first point
             {
@@ -357,7 +356,8 @@ void fingertip(HandGetureTypeSt *pHandGestureSt)
              if(signal)
              {
                 signal = false;
-                CvPoint l1,l2,l3;//temp1為中心到指尖, vector1為指尖到p1, vector2為指尖到p2
+                CvPoint l1,l2,l3;//temp1
+				float angelThr = cvAngleDeg2D(&min, &minp2, &pHandGestureSt->hand_center);
                 l1.x = min.x - pHandGestureSt->hand_center.x;
                 l1.y = min.y - pHandGestureSt->hand_center.y;
 
@@ -371,13 +371,14 @@ void fingertip(HandGetureTypeSt *pHandGestureSt)
                 length1 = sqrtf((l2.x*l2.x)+(l2.y*l2.y));
                 length2 = sqrtf((l3.x*l3.x)+(l3.y*l3.y));
 
-                if(length > length1 && length > length2 && min.y < (pHandGestureSt->hand_center.y + pHandGestureSt->hand_radius) && length > 1.5*pHandGestureSt->hand_radius)
+
+                if(angelThr < 90 && min.y < (pHandGestureSt->hand_center.y + (pHandGestureSt->hand_radius>>1)) && length > 1.7*pHandGestureSt->hand_radius)
                {
                     //cvCircle(pHandGestureSt->image,min,6,CV_RGB(0,255,0),-1,8,0);
 					pHandGestureSt->fingers[pHandGestureSt->num_fingers] = min;
 					pHandGestureSt->num_fingers++;
                 }
-                else if(length < length1 && length < length2)
+                else
                 {
                    cvCircle(pHandGestureSt->image,min,8, WHITE,-1,8,0);
                 }
@@ -440,50 +441,37 @@ void GestureRecognition(HandGetureTypeSt *pHandGestureSt)
 void threeFiger()
 #endif
 
+int nPointCount = 0;
+
 void findHand(HandGetureTypeSt* pHandGestureSt)
 {
-	int pxidx = 0;
-	CvPoint handcenter;
-	int handRadius;
-	handcenter = pHandGestureSt->hand_center;
-	handRadius =  pHandGestureSt->hand_radius;
-	int ymax = handcenter.y + handRadius;
+	std::vector<CvPoint> poinList;
+	poinList.clear();
+	double pointVal;
+	CvPoint pointCoo;
+	nPointCount = 0;
+	// pHandGestureSt->forcearm_img = cvCreateImage(cvGetSize(pHandGestureSt->thr_image), pHandGestureSt->thr_image->depth, pHandGestureSt->thr_image->nChannels );
+	//cvCopy(pHandGestureSt->thr_image, pHandGestureSt->forcearm_img, NULL);
+	//cvShowImage("ThresholdImage", pHandGestureSt->thr_image);
+	uchar* pThrimg_t = (uchar*)pHandGestureSt->thr_image->imageData;
 
-	cvCopy(pHandGestureSt->thr_image, pHandGestureSt->forcearm_img, NULL);
-
-	for (int y = 0; y < 480; ++y)
+	for (int y = 0; y < pHandGestureSt->thr_image->height; ++y)
 	{
-		for (int x = 0; x < 640; ++x, ++pxidx)
+		for (int x = 0; x < pHandGestureSt->thr_image->width; ++x, ++pThrimg_t)
 		{
-			if((y > ymax) && (y < (ymax + 60)))
-			{}
-			else
+			//pointVal = cvGetReal2D(pHandGestureSt->thr_image, x, y);
+			//if(pointCoo.x < armcenter.x + 10 && pointCoo.x < armcenter.x - 10  && *pImgData == 255)
+			if(*pThrimg_t == 255)
 			{
-				pHandGestureSt->forcearm_img->imageData[pxidx] = 0;
+				pointCoo.x = x;
+				pointCoo.y = y;
+				poinList.push_back(pointCoo);
+				nPointCount++;
 			}
 		}
-//		++pxidx;
 	}
 
-	cvShowImage("handdirection", pHandGestureSt->forcearm_img);
-
-	cvFindContours(pHandGestureSt->forcearm_img, pHandGestureSt->temp_st, &pHandGestureSt->handDirectionCont,
-		       sizeof(CvContour), CV_RETR_EXTERNAL,
-		       CV_CHAIN_APPROX_SIMPLE, cvPoint(0, 0));
-
-	if(pHandGestureSt->handDirectionCont)
-	{
-
-		CvBox2D handbox = cvMinAreaRect2(pHandGestureSt->handDirectionCont);
-		CvPoint2D32f rect_pts0[4];
-		cvBoxPoints(handbox, rect_pts0);
-		int ctpoint = 4;
-		CvPoint rect_pts[4], *pt = rect_pts;
-		for (int rp=0; rp<4; rp++)
-			rect_pts[rp]= cvPointFrom32f(rect_pts0[rp]);
-		cvPolyLine(pHandGestureSt->image, 	&pt, &ctpoint, 1, 1, RED, 1) ;
-		cvLine(pHandGestureSt->image, cvPointFrom32f(handbox.center), pHandGestureSt->hand_center, PURPLE, 2, 8, 0);
-	}
+	pHandGestureSt->thresholdPoints = poinList;
 }
 
 IplImage* getThreshImg(CvSeq* contour, IplImage* ThresholdImage)
@@ -501,12 +489,13 @@ IplImage* getThreshImg(CvSeq* contour, IplImage* ThresholdImage)
 std::vector<CvPoint> getListofPointofThImg(IplImage* pThImg, CvPoint handPoint)
 {
 	std::vector<CvPoint> poinList;
-	CvScalar pointVal;
+	poinList.clear();
+	double pointVal;
 	CvPoint pointCoo;
 
 	//uchar* pImgData = (uchar*)pThImg->imageData;
 
-	/*int startRow = (CvRectgl.width>>1) > 20 ? armcenter.x - 20 : 0;
+	int startRow = (CvRectgl.width>>1) > 20 ? armcenter.x - 20 : 0;
 	int endRow = (CvRectgl.width>>1) > 20 ? armcenter.x + 20 : armcenter.x + (CvRectgl.width>>1);
 
 	for(int idxrow = startRow; idxrow < endRow; ++idxrow)
@@ -515,29 +504,29 @@ std::vector<CvPoint> getListofPointofThImg(IplImage* pThImg, CvPoint handPoint)
 		for(int idxcol = CvRectgl.y; idxcol < CvRectgl.y + CvRectgl.height; ++idxcol)
 		{
 			pointCoo.y = idxcol;
-			pointVal = cvGet2D(pThImg, idxrow, idxcol);
+			pointVal = cvGetReal2D(pThImg, idxrow, idxcol);
 			//if(pointCoo.x < armcenter.x + 10 && pointCoo.x < armcenter.x - 10  && *pImgData == 255)
-			if(pointVal.val[0] != 0)
+			if(pointVal != 0)
 			{
 				poinList.push_back(pointCoo);
 			}
 		}
-	}*/
-	poinList.clear();
+	}
+/*	poinList.clear();
 	for(int idxrow = CvRectgl.x; idxrow < CvRectgl.x + CvRectgl.width; ++idxrow)
 	{
 		pointCoo.x = idxrow;
 		for(int idxcol = CvRectgl.y; idxcol < CvRectgl.y + CvRectgl.height; ++idxcol)
 		{
 			pointCoo.y = idxcol;
-			pointVal = cvGet2D(pThImg, idxrow, idxcol);
+			pointVal = cvGetReal2D(pThImg, idxrow, idxcol);
 			//if(pointCoo.x < armcenter.x + 10 && pointCoo.x < armcenter.x - 10  && *pImgData == 255)
-			if(pointVal.val[0] != 0)
+			if(pointVal != (double)0.0)
 			{
 				poinList.push_back(pointCoo);
 			}
 		}
-	}
+	} */
 
 	return poinList;
 }

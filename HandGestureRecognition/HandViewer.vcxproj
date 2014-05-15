@@ -193,10 +193,9 @@ xcopy /D /F /Y "$(ProjectDir)\glut64.dll" "$(OutDir)"
   <ItemGroup>
     <ClInclude Include="GestureRecognition.h" />
     <ClInclude Include="HandViewer.h" />
-    <ClInclude Include="HistoryBuffer.h" />
     <ClInclude Include="Palm.h" />
     <ClInclude Include="PalmFinder.h" />
-    <ClInclude Include="Utilities.h" />
+    <ClInclude Include="PointFunctions.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -14,6 +14,7 @@ using namespace std;
 
 HandViewer* HandViewer::ms_self = NULL;
 
+openni::VideoStream m_depthStream;
 std::map<int, HistoryBuffer<HISBUFFER> *> g_histories;
 
 bool g_drawDepth = true;
@@ -22,7 +23,6 @@ bool g_drawFrameId = false;
 
 int g_nXRes = 0, g_nYRes = 0;
 
-openni::VideoStream m_depthStream;
 
 void HandViewer::cvKeyboard(unsigned char key, int x, int y)
 {
@@ -31,6 +31,7 @@ void HandViewer::cvKeyboard(unsigned char key, int x, int y)
 
 HandViewer::HandViewer(const char* strSampleName) : handFound(false), handOffset(0)
 {
+	this->m_pstream = &m_depthStream;
 	ms_self = this;
 	strncpy_s(m_strSampleName, strSampleName, ONI_MAX_STR);
 	m_pHandTracker = new nite::HandTracker;
@@ -48,7 +49,7 @@ void HandViewer::Finalize()
 	openni::OpenNI::shutdown();
 
 	/*Release structure images */
-	//cvReleaseImage(&pImg);
+	cvReleaseImage(&pImg);
 	//cvReleaseImage(&pThImg);
 }
 
@@ -125,6 +126,7 @@ openni::Status HandViewer::Run()	//Does not return
 		find_convex_hull(&HandGestureSt);
 		fingertip(&HandGestureSt);
 		//find_fingers(&cvctx);
+		//findHand(&HandGestureSt);
 		FindPalm(&HandGestureSt);
 		//Display the OpenCV texture map
 		HandDisplay(&HandGestureSt);
@@ -223,7 +225,7 @@ void HandViewer::HandSegmentation()
 			cvhandPoint = cvPointFrom32f(handPoint);
 		
 			//Get hand
-			this->getHandThreshold();
+			this->pThImg = this->getHandThreshold();
 
 			cvCircle(this->pRgbImg, cvhandPoint, 2, RED, 4, CV_AA, 0);
 		}
@@ -254,7 +256,6 @@ void HandViewer::DrawHistory(nite::HandTracker* pHandTracker, int id, HistoryBuf
 	}
 
 	cvDrawSetofPoints(this->pRgbImg, coordinates, color, hisBufSize);
-
 }
 
 
@@ -267,8 +268,10 @@ void HandViewer:: HandViewerDisplay()
 	}
 }
 
-nite::Status HandViewer::getHandThreshold()
+IplImage* HandViewer::getHandThreshold()
 {
+	IplImage* img_t;
+
 	// Get hand depth point
 	openni::CoordinateConverter::convertWorldToDepth(m_depthStream, hand3DPoint.x, hand3DPoint.y, hand3DPoint.z, &handDepthPoint.p.x, &handDepthPoint.p.y, &handDepthPoint.d);
 
@@ -286,10 +289,10 @@ nite::Status HandViewer::getHandThreshold()
 	rect.x = (rect.x + rect.width < W)? rect.x : W - rect.width;
 	rect.y = (rect.y + rect.height < H)? rect.y : H - rect.height;
 
-	this->pThImg = cvCreateImage(cvSize(rect.width, rect.height), this->pImg->depth, this->pImg->nChannels);
-	uchar* pImg_t =  (uchar*)this->pThImg->imageData;
+	img_t = cvCreateImage(cvSize(rect.width, rect.height), this->pImg->depth, this->pImg->nChannels);
+	uchar* pImg_t =  (uchar*)img_t->imageData;
 	cvSetImageROI(this->pImg, rect);
-	cvCopy(this->pImg, this->pThImg, NULL);
+	cvCopy(this->pImg, img_t, NULL);
 	cvResetImageROI(this->pImg);
 
 	int pixelValue = 0;
@@ -308,7 +311,7 @@ nite::Status HandViewer::getHandThreshold()
 			}
 		}
 	}
-	return nite::STATUS_OK;
+	return img_t;
 }
 
 

@@ -42,7 +42,6 @@ typedef struct cvImgPoint
 
 
 //	openni::VideoStream depth, color;
-extern openni::VideoStream m_depthStream;
 
 class HandViewer
 {
@@ -75,13 +74,14 @@ private:
 	static const CvPoint& cvhandPoint;
 	static void cvKeyboard(unsigned char key, int x, int y);
 
-	nite::Status HandViewer::getHandThreshold();
+	IplImage* HandViewer::getHandThreshold();
 
 	NitePoint3f hand3DPoint;
 	int				m_pDepthHist[MAX_DEPTH];
 	char			m_strSampleName[ONI_MAX_STR];
 
 	openni::Device		m_device;
+	openni::VideoStream* m_pstream;
 	nite::HandTracker* m_pHandTracker;
 
 	int handOffset;
