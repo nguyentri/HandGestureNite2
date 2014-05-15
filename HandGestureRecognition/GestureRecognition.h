@@ -28,7 +28,7 @@ extern float m_pDepthHist[MAX_DEPTH];
 
 #define VIDEO_FILE	"video.avi"
 #define VIDEO_FORMAT	CV_FOURCC('M', 'J', 'P', 'G')
-#define NUM_FINGERS 20 
+#define NUM_FINGERS 6 
 #define NUM_DEFECTS	5
 
 #define PI 3.14159
@@ -42,6 +42,27 @@ extern float m_pDepthHist[MAX_DEPTH];
 #define YELLOW  CV_RGB(255, 255, 0)
 #define PURPLE  CV_RGB(255, 0, 255)
 #define GREY    CV_RGB(200, 200, 200)
+
+
+// angle ranges of thumb and index finger of the left hand relative to its COG
+#define MIN_THUMB  135
+#define MAX_THUMB  200
+
+#define MIN_INDEX  95
+#define MAX_INDEX  135
+
+#define MIN_MIDDLE 80
+#define MAX_MIDDLE 95
+
+#define MIN_RING   65
+#define MAX_RING   80
+
+#define MAX_LITTLE  65
+#define MIN_LITTLE   0
+
+enum FingerNameE {
+	LITTLE, RING, MIDDLE, INDEX, THUMB, UNKNOWN};
+
 
 inline float distanceP2P(const CvPoint* a, const CvPoint* b){
 	float d= sqrt(fabs( pow(a->
@@ -99,7 +120,14 @@ typedef struct HandGesture {
 	int		num_defects;
 	int		dfdisthreshold;
 	int		handDepth;
+	float contourAxisAngle;
+
+	std::vector<FingerNameE>namedFingers;
+
 	std::vector<CvPoint> thresholdPoints;
+
+	char number[20];
+
 	CvPoint HandPoint;
 } HandGetureTypeSt;
 
@@ -112,7 +140,7 @@ extern void init_recording(HandGetureTypeSt *pHandGestureSt);
 extern void init_windows(void);
 
 /*Function to initialize HandGetureTypeSt. */
-extern void init_pHandGestureSt(HandGetureTypeSt *pHandGestureSt);
+extern void init_HandGestureSt(HandGetureTypeSt *pHandGestureSt);
 
 extern void filter_and_threshold(HandGetureTypeSt *pHandGestureSt);
 
@@ -134,5 +162,17 @@ void findHand(HandGetureTypeSt* pHandGestureSt);
 IplImage* getThreshImg(CvSeq* contour, IplImage* ThresholdImage);
 
 std::vector<CvPoint> getListofPointofThImg(IplImage* pThImg, CvPoint handPoint);
+
+float calculateTilt(double m11, double m20, double m02);
+
+void labelFingers();
+
+float angleToCOG(CvPoint tipPt, CvPoint cogPt, int contourAxisAngle);
+
+void handProcessing(void);
+
+void nameFingers(void);
+
+void labelFingers(void);
 
 #endif

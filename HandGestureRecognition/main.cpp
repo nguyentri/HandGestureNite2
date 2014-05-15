@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 	/*Hand processing initialization. */
 	init_recording(&HandGestureSt);
 	//init_windows();
-	init_pHandGestureSt(&HandGestureSt);
+	init_HandGestureSt(&HandGestureSt);
 
 
 	for(;;)

@@ -1,16 +1,24 @@
 ﻿
+
 #include <conio.h>
 #include <stdio.h>
-#include <OpenNI.h>
 #include "GestureRecognition.h"
 #include "PalmFinder.h"
+#include <math.h>
 
-//using namespace HandGestureCore;
 
 #define SHOW_HAND_CONTOUR
 
-CvPoint pt0,pt,p,armcenter;//center:´x¤ßÂI  armcenter:½ü¹ø¤¤¤ßÂI
+CvPoint pt0,pt,p,armcenter;//center:
 CvRect CvRectgl;
+
+const char* fingerName[] = {"little", "ring", "middle" ,"index", "thumb"};
+
+const char* numberLIST[] = {"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"};
+
+const CvFont cvFontFingerName = cvFont(1.2, 1);
+
+const CvFont cvFontFingerNumber = cvFont(5, 2);
 
 inline float cvDistance2D(const CvPoint* p0, const CvPoint* p1);
 
@@ -35,23 +43,26 @@ void init_recording(HandGetureTypeSt *pHandGestureSt)
 	}
 }
 
-void init_windows(void)
+void handProcessing(void)
 {
-	cvNamedWindow("output", CV_WINDOW_NORMAL);
-	cvNamedWindow("thresholded", CV_WINDOW_NORMAL);
-	cvMoveWindow("output", 50, 50);
-	cvMoveWindow("thresholded", 700, 50);
+		//external function called for get hand gesture
+		//Call hand processing
+		filter_and_threshold(&HandGestureSt);
+		find_contour(&HandGestureSt);
+		find_convex_hull(&HandGestureSt);
+		fingertip(&HandGestureSt);
+		//find_fingers(&cvctx);
+		//findHand(&HandGestureSt);
+		FindPalm(&HandGestureSt);
+		//Display the OpenCV texture map
+		nameFingers();
+		HandDisplay(&HandGestureSt);
 }
 
-void init_pHandGestureSt(HandGetureTypeSt *pHandGestureSt)
+void init_HandGestureSt(HandGetureTypeSt *pHandGestureSt)
 {
-//	pHandGestureSt->thr_image = cvCreateImage(cvSize(640, 480), 8, 1);
-//	pHandGestureSt->temp_image1 = cvCreateImage(cvSize(640, 480), 8, 1);
-//	pHandGestureSt->temp_image3 = cvCreateImage(cvSize(640, 480), 8, 3);
-	pHandGestureSt->kernel = cvCreateStructuringElementEx(9, 9, 4, 4, CV_SHAPE_RECT,
-						   NULL);
 
-		//HandPoints = (Point*)calloc();
+	pHandGestureSt->kernel = cvCreateStructuringElementEx(9, 9, 4, 4, CV_SHAPE_RECT, NULL);
 	pHandGestureSt->forcearm_img = cvCreateImage(cvSize(640, 480), 8, 1);
 
 	pHandGestureSt->contour_st = cvCreateMemStorage(0);
@@ -71,9 +82,9 @@ void filter_and_threshold(HandGetureTypeSt *pHandGestureSt)
 {
 //	cvDilate(pHandGestureSt->thr_image,pHandGestureSt->thr_image,0, 0);  //¿±µÈ 
 
- 	cvSmooth(pHandGestureSt->thr_image, pHandGestureSt->thr_image, CV_MEDIAN, 3, 3, 0, 0);
+ 	cvSmooth(pHandGestureSt->thr_image, pHandGestureSt->thr_image, CV_MEDIAN, 7, 7, 0, 0);
 
- //   cvErode(pHandGestureSt->thr_image,pHandGestureSt->thr_image,0,1);
+ //  cvErode(pHandGestureSt->thr_image,pHandGestureSt->thr_image,0,1);
 }
 
 
@@ -108,40 +119,57 @@ void find_contour(HandGetureTypeSt *pHandGestureSt)
 	}
 
 
- 	 /*Draw rectangel */
-	 if(pHandGestureSt->contour)
-	 {
- 		 CvRectgl = cvBoundingRect(pHandGestureSt->contour);
- 		 //Draw box of hand
- 		 CvPoint p1 = cvPoint(CvRectgl.x, CvRectgl.y);
- 		 CvPoint p2 = cvPoint(CvRectgl.x + CvRectgl.width, CvRectgl.y + CvRectgl.height);
- 		 cvRectangle(pHandGestureSt->image, p1, p2, GREEN, 1); 
+	/*Draw hand box */
+	if(pHandGestureSt->contour)
+	{
+		
+ 		CvRectgl = cvBoundingRect(pHandGestureSt->contour);
+		//Draw box of hand
+		/*CvPoint p1 = cvPoint(CvRectgl.x, CvRectgl.y);
+		CvPoint p2 = cvPoint(CvRectgl.x + CvRectgl.width, CvRectgl.y + CvRectgl.height);
+		cvRectangle(pHandGestureSt->image, p1, p2, GREEN, 1); 
 	 
 		armcenter.x = CvRectgl.x + CvRectgl.width/2;
-        armcenter.y = CvRectgl.y + CvRectgl.height/2;
+		armcenter.y = CvRectgl.y + CvRectgl.height/2;
 
-		//CvBox2D handbox = cvMinAreaRect2(pHandGestureSt->contour);
-	    //           armcenter.x = cvRound(handbox.center.x);
-         //       armcenter.y = cvRound(handbox.center.y);
-		//CvPoint2D32f rect_pts0[4];
-		//cvBoxPoints(handbox, rect_pts0);
-		//int ctpoint = 4;
-		//CvPoint rect_pts[4], *pt = rect_pts;
-		//for (int rp=0; rp<4; rp++)
-		//	rect_pts[rp]= cvPointFrom32f(rect_pts0[rp]);
-		//cvPolyLine(pHandGestureSt->image, 	&pt, &ctpoint, 1, 1, RED, 1) ;
-		///*Draw box */
+		CvBox2D handbox = cvMinAreaRect2(pHandGestureSt->contour);
+				armcenter.x = cvRound(handbox.center.x);
+			armcenter.y = cvRound(handbox.center.y);*/
+		/*CvPoint2D32f rect_pts0[4];
+		cvBoxPoints(handbox, rect_pts0);
+		int ctpoint = 4;
+		CvPoint rect_pts[4], *pt = rect_pts;
+		for (int rp=0; rp<4; rp++)
+		rect_pts[rp]= cvPointFrom32f(rect_pts0[rp]);
+		cvPolyLine(pHandGestureSt->image, 	&pt, &ctpoint, 1, 1, RED, 1) ;
+		///Draw hand rectangle
 		cvCircle(pHandGestureSt->image, armcenter, 2,
-			 RED, 1, CV_AA, 0);
-
-
-		//IplImage* resImg = getThreshImg(pHandGestureSt->contour, pHandGestureSt->thr_image);
+			RED, 1, CV_AA, 0); */
+	
+		//Get moments
+		 CvMoments moments;
+		 cvMoments(pHandGestureSt->thr_image, &moments, 1);     // CvSeq is a subclass of CvArr
+		// center of gravity
+		double m00 = cvGetSpatialMoment( &moments, 0, 0) ;
+	    double m10 = cvGetSpatialMoment( &moments, 1, 0) ;
+		double m01 = cvGetSpatialMoment( &moments, 0, 1);
+		if (m00 != 0) {   // calculate center
+			 armcenter.x  =(m10/m00);
+			 armcenter.y = (m01/m00);
+			cvCircle(pHandGestureSt->image, armcenter, 2,
+			RED, 1, CV_AA, 0);
+		 }
+		 double m11 = cvGetCentralMoment( &moments, 1, 1);
+		 double m20 = cvGetCentralMoment( &moments, 2, 0);
+		 double m02 = cvGetCentralMoment( &moments, 0, 2);
+		 pHandGestureSt->contourAxisAngle = calculateTilt(m11, m20, m02);
+          /* this angle assumes that the positive y-axis
+             is down the screen */
 
 		//Get list of points of threshold
 		pHandGestureSt->thresholdPoints.clear();
 		pHandGestureSt->thresholdPoints = getListofPointofThImg(pHandGestureSt->thr_image, armcenter);
 		//cvSaveImage("ThresholdImage.JPG", resImg);
-
 	}
 }
 
@@ -286,10 +314,10 @@ void HandDisplay(HandGetureTypeSt *pHandGestureSt)
 				 GREEN, 2, CV_AA, 0);
 		}
 
-		CvFont cvfont = cvFont(10, 2);
-		char numfg[10];
-		sprintf(numfg, "%d", pHandGestureSt->num_fingers);
-		cvPutText(pHandGestureSt->image, &numfg[0], cvPoint(520, 120), &cvfont, GREEN);
+		for (i = 0; i < strlen(pHandGestureSt->number); i++)
+		{
+			cvPutText(pHandGestureSt->image, pHandGestureSt->number, cvPoint(480 + i*5, 120), &cvFontFingerNumber, GREEN);
+		}
 //	}
 	cvShowImage("DepthImage", pHandGestureSt->image);
 	cvShowImage("ThresholdImage", pHandGestureSt->thr_image);
@@ -302,7 +330,6 @@ void fingertip(HandGetureTypeSt *pHandGestureSt)
     float length1,length2,angle,minangle,length;
     CvPoint min,minp1,minp2;
     CvPoint *p1,*p2,*p;
-//    int tiplocation[20];
     int count = 0;
     bool signal = false;
 	pHandGestureSt->num_fingers = 0;
@@ -372,7 +399,7 @@ void fingertip(HandGetureTypeSt *pHandGestureSt)
                 length2 = sqrtf((l3.x*l3.x)+(l3.y*l3.y));
 
 
-                if(angelThr < 90 && min.y < (pHandGestureSt->hand_center.y + (pHandGestureSt->hand_radius>>1)) && length > 1.7*pHandGestureSt->hand_radius)
+                if(angelThr < 90 && min.y < (pHandGestureSt->hand_center.y + (pHandGestureSt->hand_radius>>1)) && length > 1.8*pHandGestureSt->hand_radius)
                {
                     //cvCircle(pHandGestureSt->image,min,6,CV_RGB(0,255,0),-1,8,0);
 					pHandGestureSt->fingers[pHandGestureSt->num_fingers] = min;
@@ -416,64 +443,6 @@ void FindPalm(HandGetureTypeSt *pHandGestureSt)
 	pHandGestureSt->hand_radius = palmPointer->getDistanceToContour();
 }
 
-#if 0
-void GestureRecognition(HandGetureTypeSt *pHandGestureSt)
-{
-	HandGetureTypeSt* pHandGestureStp = pHandGestureSt;
-	switch (pHandGestureSt->num_fingers)
-	{
-		case 1:
-			//oneFinger(pHandGestureStp);
-			break;
-		case 2:
-			//twoFinger(pHandGestureStp);
-			break;
-		case 3:
-			threeFinger(pHandGestureStp);
-			break;
-		case 4:
-			break;
-		case 5:
-			break;
-	}
-}
-
-void threeFiger()
-#endif
-
-int nPointCount = 0;
-
-void findHand(HandGetureTypeSt* pHandGestureSt)
-{
-	std::vector<CvPoint> poinList;
-	poinList.clear();
-	double pointVal;
-	CvPoint pointCoo;
-	nPointCount = 0;
-	// pHandGestureSt->forcearm_img = cvCreateImage(cvGetSize(pHandGestureSt->thr_image), pHandGestureSt->thr_image->depth, pHandGestureSt->thr_image->nChannels );
-	//cvCopy(pHandGestureSt->thr_image, pHandGestureSt->forcearm_img, NULL);
-	//cvShowImage("ThresholdImage", pHandGestureSt->thr_image);
-	uchar* pThrimg_t = (uchar*)pHandGestureSt->thr_image->imageData;
-
-	for (int y = 0; y < pHandGestureSt->thr_image->height; ++y)
-	{
-		for (int x = 0; x < pHandGestureSt->thr_image->width; ++x, ++pThrimg_t)
-		{
-			//pointVal = cvGetReal2D(pHandGestureSt->thr_image, x, y);
-			//if(pointCoo.x < armcenter.x + 10 && pointCoo.x < armcenter.x - 10  && *pImgData == 255)
-			if(*pThrimg_t == 255)
-			{
-				pointCoo.x = x;
-				pointCoo.y = y;
-				poinList.push_back(pointCoo);
-				nPointCount++;
-			}
-		}
-	}
-
-	pHandGestureSt->thresholdPoints = poinList;
-}
-
 IplImage* getThreshImg(CvSeq* contour, IplImage* ThresholdImage)
 {
 	CvRect rect;
@@ -482,7 +451,6 @@ IplImage* getThreshImg(CvSeq* contour, IplImage* ThresholdImage)
 	cvSetImageROI(ThresholdImage, rect);
 	cvCopy(ThresholdImage,result, NULL);
 	cvResetImageROI(ThresholdImage);
-	cvShowImage("hand", result);
 	return result;
 }
 
@@ -506,27 +474,205 @@ std::vector<CvPoint> getListofPointofThImg(IplImage* pThImg, CvPoint handPoint)
 			pointCoo.y = idxcol;
 			pointVal = cvGetReal2D(pThImg, idxrow, idxcol);
 			//if(pointCoo.x < armcenter.x + 10 && pointCoo.x < armcenter.x - 10  && *pImgData == 255)
-			if(pointVal != 0)
+			if(pointVal != 0 && cvDistance2D(&armcenter, &pointCoo) < 30)
 			{
 				poinList.push_back(pointCoo);
 			}
 		}
 	}
-/*	poinList.clear();
-	for(int idxrow = CvRectgl.x; idxrow < CvRectgl.x + CvRectgl.width; ++idxrow)
-	{
-		pointCoo.x = idxrow;
-		for(int idxcol = CvRectgl.y; idxcol < CvRectgl.y + CvRectgl.height; ++idxcol)
-		{
-			pointCoo.y = idxcol;
-			pointVal = cvGetReal2D(pThImg, idxrow, idxcol);
-			//if(pointCoo.x < armcenter.x + 10 && pointCoo.x < armcenter.x - 10  && *pImgData == 255)
-			if(pointVal != (double)0.0)
-			{
-				poinList.push_back(pointCoo);
-			}
-		}
-	} */
-
 	return poinList;
 }
+
+float calculateTilt(double m11, double m20, double m02)
+  /* Return integer degree angle of contour's major axis relative to the horizontal, 
+     assuming that the positive y-axis goes down the screen. 
+
+     This code is based on maths explained in "Simple Image Analysis By Moments", by
+     Johannes Kilian, March 15, 2001 (see Table 1 on p.7). 
+     The paper is available at:
+          http://public.cranfield.ac.uk/c5354/teaching/dip/opencv/SimpleImageAnalysisbyMoments.pdf
+  */
+  {
+    double diff = m20 - m02;
+    if (diff == 0) {
+      if (m11 == 0)
+        return 0;
+      else if (m11 > 0)
+        return 45;
+      else   // m11 < 0
+        return -45;
+    }
+
+    double theta = 0.5 * atan2(2*m11, diff);
+    int tilt = (float) (theta*180 / PI);
+
+    if ((diff > 0) && (m11 == 0))
+      return 0;
+    else if ((diff < 0) && (m11 == 0))
+      return -90;
+    else if ((diff > 0) && (m11 > 0))  // 0 to 45 degrees
+      return tilt;
+    else if ((diff > 0) && (m11 < 0))  // -45 to 0
+      return (180 + tilt);   // change to counter-clockwise angle measure
+    else if ((diff < 0) && (m11 > 0))   // 45 to 90
+      return tilt;
+    else if ((diff < 0) && (m11 < 0))   // -90 to -45
+      return (180 + tilt);  // change to counter-clockwise angle measure
+    return 0;
+  }  // end of calculateTilt()
+
+void nameFingers(void)
+  /* Use the finger tip coordinates, and the comtour's COG and axis angle to horizontal
+     to label the fingers.
+
+     Try to label the thumb and index based on their likely angle ranges
+     relative to the COG. This assumes that the thumb and index finger are on the
+     left side of the hand.
+
+     Then label the other fingers based on the order of the names in the FingerName class
+  */
+  { // reset all named fingers to unknown
+
+	std::vector<FingerNameE>namedFingers = HandGestureSt.namedFingers;
+
+    namedFingers.clear();
+    for (int i=0; i < HandGestureSt.num_fingers; i++)
+		namedFingers.push_back(UNKNOWN);
+
+    labelFingers();
+
+    // printFingers("named fingers", namedFingers);
+    //labelUnknowns(namedFingers);
+    // printFingers("revised named fingers", namedFingers);
+  }  // end of nameFingers()
+
+void labelFingers(void)
+  // attempt to label the thumb and index fingers of the hand
+{ 
+    bool foundThumb = false;
+    bool foundIndex = false;
+	bool foundMiddle = false;
+	bool foundRing = false;
+	bool foundLittle = false;
+	float angleThr = 0;
+
+      /* the thumb and index fingers will most likely be stored at the end
+         of the list, since the contour hull was built in a counter-clockwise 
+         order by the call to cvConvexHull2() in findFingerTips(), and I am assuming
+         the thumb is on the left of the hand.
+         So iterate backwards through the list.
+      */
+	float contourAxisAngle = 180  - HandGestureSt.contourAxisAngle;
+    int i = HandGestureSt.num_fingers - 1;
+    while ((i >= 0)) {
+		int angle = angleToCOG(HandGestureSt.fingers[i], HandGestureSt.hand_center,  HandGestureSt.contourAxisAngle);
+
+      // check for thumb
+      if ((angle <=  MAX_THUMB) && (angle > MIN_THUMB) && !foundThumb) {
+		cvPutText(HandGestureSt.image, "Thum", HandGestureSt.fingers[i], &cvFontFingerName, PURPLE);
+		  HandGestureSt.namedFingers.assign(i, THUMB);
+        foundThumb = true;
+      }
+
+      // check for index
+      if ((angle <= MAX_INDEX) && (angle > MIN_INDEX) && !foundIndex) {
+        HandGestureSt.namedFingers.assign(i, INDEX);
+		cvPutText(HandGestureSt.image, "Index", HandGestureSt.fingers[i], &cvFontFingerName, PURPLE);
+        foundIndex = true;
+      }
+
+      // check for middle
+      if ((angle <= MAX_MIDDLE) && (angle > MIN_MIDDLE) && !foundMiddle) {
+        HandGestureSt.namedFingers.assign(i, MIDDLE);
+		cvPutText(HandGestureSt.image, "Middle", HandGestureSt.fingers[i], &cvFontFingerName, PURPLE);
+        foundMiddle = true;
+      }
+
+      // check for ring
+      if ((angle <= MAX_RING) && (angle > MIN_RING) && !foundRing) {
+        HandGestureSt.namedFingers.assign(i, RING);
+		cvPutText(HandGestureSt.image, "Ring", HandGestureSt.fingers[i], &cvFontFingerName, PURPLE);
+        foundRing = true;
+      }
+
+      // check for little
+      if ((angle <= MAX_LITTLE) && (angle > MIN_LITTLE) && !foundLittle) {
+        HandGestureSt.namedFingers.assign(i, MIDDLE);
+		cvPutText(HandGestureSt.image, "Little", HandGestureSt.fingers[i], &cvFontFingerName, PURPLE);
+        foundLittle = true;
+      }
+
+      i--;
+    }
+
+	switch (HandGestureSt.num_fingers)
+	{
+		case 0:
+			strcpy(HandGestureSt.number, numberLIST[0]);
+		break;
+		case 1:
+			if(foundIndex == true)
+				strcpy(HandGestureSt.number, numberLIST[1]);
+			else if(foundThumb == true)
+				strcpy(HandGestureSt.number, numberLIST[10]);
+			else 
+			{
+				strcpy(HandGestureSt.number, "N.A");
+			}
+		break;
+		case 2:
+			strcpy(HandGestureSt.number, numberLIST[2]);
+		break;
+		case 3:
+			if(foundThumb && foundIndex && foundMiddle)
+			{
+				strcpy(HandGestureSt.number, numberLIST[3]);
+			}
+			else if(foundIndex && foundMiddle && foundRing)
+			{
+				strcpy(HandGestureSt.number, numberLIST[6]);
+			}
+			else if(foundLittle && foundMiddle && foundIndex)
+			{
+				strcpy(HandGestureSt.number, numberLIST[7]);
+			}
+			else if(foundLittle && foundRing && foundIndex)
+			{
+				strcpy(HandGestureSt.number, numberLIST[8]);
+			}
+			else if(foundLittle && foundRing && foundMiddle)
+			{
+				strcpy(HandGestureSt.number, numberLIST[9]);
+			}
+			else 
+			{
+				strcpy(HandGestureSt.number, "N.A");
+			}
+		break;
+		case 4:
+			strcpy(HandGestureSt.number, numberLIST[4]);
+		break;
+		case 5:
+			strcpy(HandGestureSt.number, numberLIST[5]);
+		break;
+		default:
+			strcpy(HandGestureSt.number, numberLIST[5]);
+		break;
+	}
+}  // end of labelFingers()
+
+float angleToCOG(CvPoint tipPt, CvPoint cogPt, int contourAxisAngle)
+  /* calculate angle of tip relative to the COG, remembering to add the
+     hand contour angle so that the hand is orientated straight up */
+  {
+    int yOffset = cogPt.y - tipPt.y;    // make y positive up screen
+    int xOffset = tipPt.x - cogPt.x;
+    // CvPoint offsetPt = new CvPoint(xOffset, yOffset);
+
+    double theta = atan2(yOffset, xOffset);
+    float angleTip = (float)theta*180/PI;
+	return angleTip;
+    /*int offsetAngleTip = angleTip + (90 - contourAxisAngle);
+             // this addition ensures that the hand is orientated straight up
+    return offsetAngleTip;*/
+  }  // end of angleToCOG()

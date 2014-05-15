@@ -112,24 +112,14 @@ openni::Status HandViewer::Run()	//Does not return
 	//Map private data to external data
 	if (this->handFound == true)
 	{
+		/*Map to hand gesture struct to process hand */
 		HandGestureSt.dfdisthreshold = 5000/handDepthPoint.d;
 		HandGestureSt.HandPoint = cvPoint(this->handDepthPoint.p.x, this->handDepthPoint.p.y);
-		//cvCopy(this->pRgbImg, HandGestureSt.image, NULL); 
-		//cvCopy(this->pThImg, HandGestureSt.thr_image, NULL);
 		HandGestureSt.image = this->pRgbImg;
 		HandGestureSt.thr_image = this->pThImg;
 		HandGestureSt.handDepth = this->handDepthPoint.d;
-		//external function called for get hand gesture
 		//Call hand processing
-		filter_and_threshold(&HandGestureSt);
-		find_contour(&HandGestureSt);
-		find_convex_hull(&HandGestureSt);
-		fingertip(&HandGestureSt);
-		//find_fingers(&cvctx);
-		//findHand(&HandGestureSt);
-		FindPalm(&HandGestureSt);
-		//Display the OpenCV texture map
-		HandDisplay(&HandGestureSt);
+		handProcessing();	
 	}
 	else
 	{
