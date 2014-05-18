@@ -565,7 +565,7 @@ void labelFingers(void)
 	float contourAxisAngle = 180  - HandGestureSt.contourAxisAngle;
     int i = HandGestureSt.num_fingers - 1;
     while ((i >= 0)) {
-		int angle = angleToCOG(HandGestureSt.fingers[i], HandGestureSt.hand_center,  HandGestureSt.contourAxisAngle);
+		int angle = angleToCOG(HandGestureSt.fingers[i], HandGestureSt.hand_center, contourAxisAngle);
 
       // check for thumb
       if ((angle <=  MAX_THUMB) && (angle > MIN_THUMB) && !foundThumb) {
@@ -671,8 +671,8 @@ float angleToCOG(CvPoint tipPt, CvPoint cogPt, int contourAxisAngle)
 
     double theta = atan2(yOffset, xOffset);
     float angleTip = (float)theta*180/PI;
-	return angleTip;
-    /*int offsetAngleTip = angleTip + (90 - contourAxisAngle);
+	//return angleTip;
+    int offsetAngleTip = angleTip + (90 - contourAxisAngle);
              // this addition ensures that the hand is orientated straight up
-    return offsetAngleTip;*/
+    return offsetAngleTip;
   }  // end of angleToCOG()
