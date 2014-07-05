@@ -45,19 +45,19 @@ extern float m_pDepthHist[MAX_DEPTH];
 
 
 // angle ranges of thumb and index finger of the left hand relative to its COG
-#define MIN_THUMB  135
+#define MIN_THUMB  136
 #define MAX_THUMB  200
 
-#define MIN_INDEX  95
+#define MIN_INDEX  104
 #define MAX_INDEX  135
 
-#define MIN_MIDDLE 80
-#define MAX_MIDDLE 95
+#define MIN_MIDDLE 91
+#define MAX_MIDDLE 103
 
 #define MIN_RING   65
-#define MAX_RING   80
+#define MAX_RING   90
 
-#define MAX_LITTLE  65
+#define MAX_LITTLE  64
 #define MIN_LITTLE   0
 
 enum FingerNameE {
@@ -78,6 +78,9 @@ inline float getAngle(const CvPoint* s,const CvPoint* f, CvPoint* e){
 	angle = (float)angle*180/PI;
 	return angle;
 }
+
+
+inline CvPoint cvPointMove(CvPoint OrgPoint, CvPoint OrientPoint);
 
 typedef struct HandGesture {
 	CvCapture	*capture;	/* Capture handle */
@@ -129,6 +132,8 @@ typedef struct HandGesture {
 	char number[20];
 
 	CvPoint HandPoint;
+
+	CvPoint RectTopHand;
 } HandGetureTypeSt;
 
 extern HandGetureTypeSt  HandGestureSt;
@@ -174,5 +179,7 @@ void handProcessing(void);
 void nameFingers(void);
 
 void labelFingers(void);
+
+void drawHandDirection();
 
 #endif

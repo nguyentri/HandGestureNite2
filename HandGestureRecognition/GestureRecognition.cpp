@@ -32,7 +32,7 @@ void init_capture(HandGetureTypeSt *pHandGestureSt)
 
 void init_recording(HandGetureTypeSt *pHandGestureSt)
 {
-	int fps = 10, width = 640, height = 480;
+	int fps = 15, width = 640, height = 480;
 
 	pHandGestureSt->writer = cvCreateVideoWriter(VIDEO_FILE, VIDEO_FORMAT, fps,
 					  cvSize(width, height), 1);
@@ -56,7 +56,8 @@ void handProcessing(void)
 		FindPalm(&HandGestureSt);
 		//Display the OpenCV texture map
 		nameFingers();
-		HandDisplay(&HandGestureSt);
+		HandDisplay(&HandGestureSt);	
+		cvWriteFrame(HandGestureSt.writer, HandGestureSt.image);//Write frame
 }
 
 void init_HandGestureSt(HandGetureTypeSt *pHandGestureSt)
@@ -125,17 +126,17 @@ void find_contour(HandGetureTypeSt *pHandGestureSt)
 		
  		CvRectgl = cvBoundingRect(pHandGestureSt->contour);
 		//Draw box of hand
-		/*CvPoint p1 = cvPoint(CvRectgl.x, CvRectgl.y);
+		CvPoint p1 = cvPoint(CvRectgl.x, CvRectgl.y);
 		CvPoint p2 = cvPoint(CvRectgl.x + CvRectgl.width, CvRectgl.y + CvRectgl.height);
-		cvRectangle(pHandGestureSt->image, p1, p2, GREEN, 1); 
+		cvRectangle(pHandGestureSt->image, cvPointMove(p1, HandGestureSt.RectTopHand), cvPointMove(p2, HandGestureSt.RectTopHand), GREEN, 1); 
 	 
-		armcenter.x = CvRectgl.x + CvRectgl.width/2;
+		/*armcenter.x = CvRectgl.x + CvRectgl.width/2;
 		armcenter.y = CvRectgl.y + CvRectgl.height/2;
 
 		CvBox2D handbox = cvMinAreaRect2(pHandGestureSt->contour);
 				armcenter.x = cvRound(handbox.center.x);
-			armcenter.y = cvRound(handbox.center.y);*/
-		/*CvPoint2D32f rect_pts0[4];
+			armcenter.y = cvRound(handbox.center.y);
+		CvPoint2D32f rect_pts0[4];
 		cvBoxPoints(handbox, rect_pts0);
 		int ctpoint = 4;
 		CvPoint rect_pts[4], *pt = rect_pts;
@@ -148,6 +149,10 @@ void find_contour(HandGetureTypeSt *pHandGestureSt)
 	
 		//Get moments
 		 CvMoments moments;
+		 pHandGestureSt->temp_image3 = cvCreateImage(cvGetSize(pHandGestureSt->thr_image), pHandGestureSt->thr_image->depth,  pHandGestureSt->thr_image->nChannels);
+		 cvDilate(pHandGestureSt->thr_image,pHandGestureSt->temp_image3, 0, 6);
+		 cvErode(pHandGestureSt->temp_image3,pHandGestureSt->temp_image3, 0 , 18);
+		// cvShowImage("error image",pHandGestureSt->temp_image3);
 		 cvMoments(pHandGestureSt->thr_image, &moments, 1);     // CvSeq is a subclass of CvArr
 		// center of gravity
 		double m00 = cvGetSpatialMoment( &moments, 0, 0) ;
@@ -192,22 +197,6 @@ void find_convex_hull(HandGetureTypeSt *pHandGestureSt)
 
 	pHandGestureSt->hull = cvConvexHull2(pHandGestureSt->contour, pHandGestureSt->hull_st, CV_CLOCKWISE, 0);
 
-
-	if (pHandGestureSt->hull) {
-
-		pt0 = **CV_GET_SEQ_ELEM( CvPoint*, pHandGestureSt->hull, pHandGestureSt->hull->total - 1 );
-
-
-		for(i = 0; i < pHandGestureSt->hull->total; i++ )
-		{
-			/*Draw convect hull */
-			pt = **CV_GET_SEQ_ELEM( CvPoint*, pHandGestureSt->hull, i );
-			//printf("%d,%d\n",pt.x,pt.y);
-			cvLine( pHandGestureSt->image, pt0, pt, YELLOW,2,8,0);
-			pt0 = pt;
-		}
-
-
 		/* Get convexity defects of contour w.r.t. the convex hull */
 		defects = cvConvexityDefects(pHandGestureSt->contour, pHandGestureSt->hull,
 					     pHandGestureSt->defects_st);
@@ -235,10 +224,9 @@ void find_convex_hull(HandGetureTypeSt *pHandGestureSt)
 					pHandGestureSt->num_defects++;
 				}
 			}
-//
+
 			free(defect_array);
 		}
-	}
 }
 
 void find_fingers(HandGetureTypeSt *pHandGestureSt)
@@ -293,24 +281,52 @@ void HandDisplay(HandGetureTypeSt *pHandGestureSt)
 
 //	if (pHandGestureSt->num_fingers == NUM_FINGERS) {
 
-#if defined(SHOW_HAND_CONTOUR)
-		cvDrawContours(pHandGestureSt->image, pHandGestureSt->contour, BLUE, GREEN, 0, 1,
-			       CV_AA, cvPoint(0, 0));
-#endif
-		cvCircle(pHandGestureSt->image, pHandGestureSt->hand_center, 5, PURPLE, 1, CV_AA, 0);
-		cvCircle(pHandGestureSt->image, pHandGestureSt->hand_center, pHandGestureSt->hand_radius,
+	if (pHandGestureSt->hull) {
+
+		pt0 = **CV_GET_SEQ_ELEM( CvPoint*, pHandGestureSt->hull, pHandGestureSt->hull->total - 1 );
+
+
+		for(i = 0; i < pHandGestureSt->hull->total; i++ )
+		{
+			/*Draw convect hull */
+			pt = **CV_GET_SEQ_ELEM( CvPoint*, pHandGestureSt->hull, i );
+			//printf("%d,%d\n",pt.x,pt.y);
+			cvLine( pHandGestureSt->image, cvPointMove(pt0,  pHandGestureSt->RectTopHand), cvPointMove(pt,  pHandGestureSt->RectTopHand), YELLOW,2,8,0);
+			pt0 = pt;
+		}
+	}
+
+	if (pHandGestureSt->contour) {
+
+		pt0 = * (CvPoint*)cvGetSeqElem(pHandGestureSt->contour, 0);
+
+
+		for(i = 1; i < pHandGestureSt->contour->total; i++ )
+		{
+			/*Draw convect hull */
+			pt =  * (CvPoint*)cvGetSeqElem(pHandGestureSt->contour, i);
+			//printf("%d,%d\n",pt.x,pt.y);
+			cvLine( pHandGestureSt->image, cvPointMove(pt0,  pHandGestureSt->RectTopHand), cvPointMove(pt,  pHandGestureSt->RectTopHand), BLUE,2,8,0);
+			pt0 = pt;
+		}
+	}
+
+	//	cvDrawContours(pHandGestureSt->image, pHandGestureSt->contour, BLUE, GREEN, 0, 1,
+	//		       CV_AA, cvPoint(0, 0));
+		cvCircle(pHandGestureSt->image, cvPointMove(pHandGestureSt->hand_center, pHandGestureSt->RectTopHand), 5, PURPLE, 1, CV_AA, 0);
+		cvCircle(pHandGestureSt->image, cvPointMove(pHandGestureSt->hand_center, pHandGestureSt->RectTopHand), pHandGestureSt->hand_radius,
 			 RED, 1, CV_AA, 0);
  
  		for (i = 0; i < pHandGestureSt->num_fingers; i++) {
  
- 			cvCircle(pHandGestureSt->image, pHandGestureSt->fingers[i], 5,
+ 			cvCircle(pHandGestureSt->image, cvPointMove(pHandGestureSt->fingers[i], pHandGestureSt->RectTopHand), 5,
  				 GREEN, 3, CV_AA, 0);
- 			cvLine(pHandGestureSt->image, pHandGestureSt->hand_center, pHandGestureSt->fingers[i],
+ 			cvLine(pHandGestureSt->image, cvPointMove(pHandGestureSt->hand_center, pHandGestureSt->RectTopHand), cvPointMove(pHandGestureSt->fingers[i], pHandGestureSt->RectTopHand),
  			       YELLOW, 1, CV_AA, 0);
  		}
 
 		for (i = 0; i < pHandGestureSt->num_defects; i++) {
-			cvCircle(pHandGestureSt->image, pHandGestureSt->defects[i], 2,
+			cvCircle(pHandGestureSt->image, cvPointMove(pHandGestureSt->defects[i], pHandGestureSt->RectTopHand), 2,
 				 GREEN, 2, CV_AA, 0);
 		}
 
@@ -338,7 +354,7 @@ void fingertip(HandGetureTypeSt *pHandGestureSt)
 	uint16_t contStep = pHandGestureSt->dfdisthreshold<<1;
 
 	//y=3/200*x+60
-	float thresholdAngle = float(3)*pHandGestureSt->handDepth/200 + 75;
+	float thresholdAngle = float(3)*pHandGestureSt->handDepth/200 + 60;
 
      for(i = 0;i < contTotal; i++)
      {
@@ -399,7 +415,7 @@ void fingertip(HandGetureTypeSt *pHandGestureSt)
                 length2 = sqrtf((l3.x*l3.x)+(l3.y*l3.y));
 
 
-                if(angelThr < 90 && min.y < (pHandGestureSt->hand_center.y + (pHandGestureSt->hand_radius>>1)) && length > 1.8*pHandGestureSt->hand_radius)
+                if(angelThr < 90 && min.y < (pHandGestureSt->hand_center.y + (pHandGestureSt->hand_radius>>1)) && length > 1.5*pHandGestureSt->hand_radius)
                {
                     //cvCircle(pHandGestureSt->image,min,6,CV_RGB(0,255,0),-1,8,0);
 					pHandGestureSt->fingers[pHandGestureSt->num_fingers] = min;
@@ -407,7 +423,7 @@ void fingertip(HandGetureTypeSt *pHandGestureSt)
                 }
                 else
                 {
-                   cvCircle(pHandGestureSt->image,min,8, WHITE,-1,8,0);
+                   cvCircle(pHandGestureSt->image,cvPointMove(min, HandGestureSt.RectTopHand),8, WHITE,-1,8,0);
                 }
              }
          }//else end
@@ -569,7 +585,7 @@ void labelFingers(void)
 
       // check for thumb
       if ((angle <=  MAX_THUMB) && (angle > MIN_THUMB) && !foundThumb) {
-		cvPutText(HandGestureSt.image, "Thum", HandGestureSt.fingers[i], &cvFontFingerName, PURPLE);
+		cvPutText(HandGestureSt.image, "Thum", cvPointMove(HandGestureSt.fingers[i], HandGestureSt.RectTopHand), &cvFontFingerName, PURPLE);
 		  HandGestureSt.namedFingers.assign(i, THUMB);
         foundThumb = true;
       }
@@ -577,28 +593,28 @@ void labelFingers(void)
       // check for index
       if ((angle <= MAX_INDEX) && (angle > MIN_INDEX) && !foundIndex) {
         HandGestureSt.namedFingers.assign(i, INDEX);
-		cvPutText(HandGestureSt.image, "Index", HandGestureSt.fingers[i], &cvFontFingerName, PURPLE);
+		cvPutText(HandGestureSt.image, "Index", cvPointMove(HandGestureSt.fingers[i], HandGestureSt.RectTopHand), &cvFontFingerName, PURPLE);
         foundIndex = true;
       }
 
       // check for middle
       if ((angle <= MAX_MIDDLE) && (angle > MIN_MIDDLE) && !foundMiddle) {
         HandGestureSt.namedFingers.assign(i, MIDDLE);
-		cvPutText(HandGestureSt.image, "Middle", HandGestureSt.fingers[i], &cvFontFingerName, PURPLE);
+		cvPutText(HandGestureSt.image, "Middle",cvPointMove(HandGestureSt.fingers[i], HandGestureSt.RectTopHand), &cvFontFingerName, PURPLE);
         foundMiddle = true;
       }
 
       // check for ring
       if ((angle <= MAX_RING) && (angle > MIN_RING) && !foundRing) {
         HandGestureSt.namedFingers.assign(i, RING);
-		cvPutText(HandGestureSt.image, "Ring", HandGestureSt.fingers[i], &cvFontFingerName, PURPLE);
+		cvPutText(HandGestureSt.image, "Ring", cvPointMove(HandGestureSt.fingers[i], HandGestureSt.RectTopHand), &cvFontFingerName, PURPLE);
         foundRing = true;
       }
 
       // check for little
       if ((angle <= MAX_LITTLE) && (angle > MIN_LITTLE) && !foundLittle) {
         HandGestureSt.namedFingers.assign(i, MIDDLE);
-		cvPutText(HandGestureSt.image, "Little", HandGestureSt.fingers[i], &cvFontFingerName, PURPLE);
+		cvPutText(HandGestureSt.image, "Little", cvPointMove(HandGestureSt.fingers[i], HandGestureSt.RectTopHand), &cvFontFingerName, PURPLE);
         foundLittle = true;
       }
 
@@ -676,3 +692,20 @@ float angleToCOG(CvPoint tipPt, CvPoint cogPt, int contourAxisAngle)
              // this addition ensures that the hand is orientated straight up
     return offsetAngleTip;
   }  // end of angleToCOG()
+
+inline CvPoint cvPointMove(CvPoint OrgPoint, CvPoint OrientPoint)
+{
+	CvPoint cvPointMoved = cvPoint(OrgPoint.x + OrientPoint.x, OrgPoint.y + OrientPoint.y);
+	return cvPointMoved;
+}
+
+IplImage* getHand_pImg(IplImage* thr_image)
+{
+	IplImage* img_t = cvCreateImage(cvSize(CvRectgl.width, CvRectgl.height), thr_image->depth, thr_image->nChannels);
+	cvSetImageROI(thr_image, CvRectgl);
+	cvCopy(thr_image, img_t, NULL);
+	cvResetImageROI(thr_image);
+
+	//return hand image
+	return img_t;
+}

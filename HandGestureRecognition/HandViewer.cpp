@@ -118,8 +118,9 @@ openni::Status HandViewer::Run()	//Does not return
 		HandGestureSt.image = this->pRgbImg;
 		HandGestureSt.thr_image = this->pThImg;
 		HandGestureSt.handDepth = this->handDepthPoint.d;
+		HandGestureSt.RectTopHand = this->RectTop;
 		//Call hand processing
-		handProcessing();	
+		handProcessing();
 	}
 	else
 	{
@@ -279,11 +280,16 @@ IplImage* HandViewer::getHandThreshold()
 	rect.x = (rect.x + rect.width < W)? rect.x : W - rect.width;
 	rect.y = (rect.y + rect.height < H)? rect.y : H - rect.height;
 
+	this->RectTop = cvPoint(rect.x, rect.y);
+
 	img_t = cvCreateImage(cvSize(rect.width, rect.height), this->pImg->depth, this->pImg->nChannels);
 	uchar* pImg_t =  (uchar*)img_t->imageData;
 	cvSetImageROI(this->pImg, rect);
 	cvCopy(this->pImg, img_t, NULL);
 	cvResetImageROI(this->pImg);
+
+	//IplImage* img_t2 = cvCreateImage(cvSize(W, H), this->pImg->depth, this->pImg->nChannels);
+	//cvZero(img_t2);
 
 	int pixelValue = 0;
 	for (y = rect.y; y <  (rect.y + rect.height); ++y)
@@ -294,6 +300,7 @@ IplImage* HandViewer::getHandThreshold()
 			if (pixelValue != 0 && (pixelValue/DEPTH_SCALE_FACTOR) < (handDepthPoint.d + 100000/handDepthPoint.d) && y < (rect.y + rect.height - 10000/handDepthPoint.d))
 			{	
 				*pImg_t = 255;
+				//cvSetReal2D(img_t2, y, x, 255);
 			}
 			else
 			{
@@ -301,6 +308,8 @@ IplImage* HandViewer::getHandThreshold()
 			}
 		}
 	}
+
+	//cvShowImage("test", img_t2);
 	return img_t;
 }
 

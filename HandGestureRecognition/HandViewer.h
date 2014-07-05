@@ -52,6 +52,8 @@ public:
 	virtual openni::Status Init(int argc, char **argv);
 	virtual openni::Status Run();	//Does not return
 
+	CvPoint RectTop;
+
 protected:
 	virtual void HandSegmentation();
 

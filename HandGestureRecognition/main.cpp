@@ -19,8 +19,8 @@ int main(int argc, char** argv)
 		return 1;
 	}
 
-	/*openni::VideoMode videomodeObj;
-	videomodeObj.setFps(15);*/
+	//openni::VideoMode videomodeObj;
+	//videomodeObj.setFps(15);
 
 	/*Hand processing initialization. */
 	init_recording(&HandGestureSt);
