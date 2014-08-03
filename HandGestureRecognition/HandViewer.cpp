@@ -12,156 +12,227 @@
 
 using namespace std;
 
-HandViewer* HandViewer::ms_self = NULL;
-
 openni::VideoStream m_depthStream;
-std::map<int, HistoryBuffer<HISBUFFER> *> g_histories;
+
+/* std::map<int, HistoryBuffer<HISBUFFER> *> g_histories;
 
 bool g_drawDepth = true;
 bool g_smoothing = false;
 bool g_drawFrameId = false;
 
 int g_nXRes = 0, g_nYRes = 0;
+ */
 
 
-void HandViewer::cvKeyboard(unsigned char key, int x, int y)
+
+//Contructor
+HandViewer::HandViewer(const char* strSampleName, const char* strMWdName, const char* strThrWdName) //: handFound(false), handOffset(0)
+{
+	ms_self = this;
+	strncpy_s(m_strSampleName, strSampleName, MAX_STR_NAME);
+	strncpy_s(m_MainImgName, strMWdName, MAX_STR_NAME);
+	strncpy_s(m_ThreImgName, strThrWdName, MAX_STR_NAME);
+	this->ppDisplayImg = &this->pDepthImg;
+	this->m_pHandTracker = new nite::HandTracker;
+}
+
+//Decontructor
+HandViewer::~HandViewer()
+{
+	delete m_pHandTracker;
+	ms_self = NULL;
+	nite::NiTE::shutdown();
+	openni::OpenNI::shutdown();
+}
+
+//
+openni::Status HandViewer::Init(int argc, char **argv)
+{
+	if((InitOpenNI() != openni::STATUS_OK) || (InitOpenCV(argc, argv) != openni::STATUS_OK))
+	{
+		return openni::STATUS_ERROR;		
+	}
+	else
+	{
+		return openni::STATUS_OK;
+	}
+}
+
+void HandViewer::KeyBoard(unsigned char key, int x, int y)
 {
 	HandViewer::ms_self->OnKey(key, x, y);
 }
 
-HandViewer::HandViewer(const char* strSampleName) : handFound(false), handOffset(0)
-{
-	this->m_pstream = &m_depthStream;
-	ms_self = this;
-	strncpy_s(m_strSampleName, strSampleName, ONI_MAX_STR);
-	m_pHandTracker = new nite::HandTracker;
-}
-HandViewer::~HandViewer()
-{
-	Finalize();
-	ms_self = NULL;
-}
-
-void HandViewer::Finalize()
-{
-	delete m_pHandTracker;
-	nite::NiTE::shutdown();
-	openni::OpenNI::shutdown();
-
-	/*Release structure images */
-	cvReleaseImage(&pImg);
-	//cvReleaseImage(&pThImg);
-}
-
-openni::Status HandViewer::Init(int argc, char **argv)
+/*
+* OpenNI/NITE inits. 
+* This method shall intialize depth stream, color stream and call starting tracking hand.
+*/
+openni::Status HandViewer::InitOpenNI(void)
 {
 	openni::OpenNI::initialize();
 
-	const char* deviceUri = openni::ANY_DEVICE;
-	for (int i = 1; i < argc-1; ++i)
-	{
-		if (strcmp(argv[i], "-device") == 0)
-		{
-			deviceUri = argv[i+1];
-			break;
-		}
-	}
-
-	openni::Status rc = m_device.open(deviceUri);
+	/*Open Kinect sensor */
+	openni::Status rc = m_device.open(openni::ANY_DEVICE);
 	if (rc != openni::STATUS_OK)
-	{
+	{	
+		/*Open Device failed */
 		printf("Open Device failed:\n%s\n", openni::OpenNI::getExtendedError());
 		return rc;
 	}
 
+	/*Open depth video stream */
 	rc = m_depthStream.create(m_device, openni::SENSOR_DEPTH);
 	if (rc == openni::STATUS_OK)
 	{
 		rc = m_depthStream.start();
 		if (rc != openni::STATUS_OK)
 		{
-			printf("SimpleViewer: Couldn't start depth stream:\n%s\n", openni::OpenNI::getExtendedError());
+			printf("HandGesture: Couldn't start depth stream:\n%s\n", openni::OpenNI::getExtendedError());
 			m_depthStream.destroy();
+			return rc; 
 		}
 	}
 	else
 	{
-		printf("SimpleViewer: Couldn't find depth stream:\n%s\n", openni::OpenNI::getExtendedError());
+		printf("HandGesture: Couldn't find depth stream:\n%s\n", openni::OpenNI::getExtendedError());
 	}
 
-	nite::NiTE::initialize();
-
-	if (m_pHandTracker->create(&m_device) != nite::STATUS_OK)
+	/*Open color video stream */
+	rc = m_colorStream.create(m_device, openni::SENSOR_COLOR);
+	if (rc == openni::STATUS_OK)
 	{
-		return openni::STATUS_ERROR;
-	}
-
-
-	m_pHandTracker->startGestureDetection(nite::GESTURE_WAVE);
-	//m_pHandTracker->startGestureDetection(nite::GESTURE_CLICK);
-	//m_pHandTracker->startGestureDetection(nite::GESTURE_HAND_RAISE);
-
-	return InitOpenCV(argc, argv);
-
-}
-
-openni::Status HandViewer::Run()	//Does not return
-{
-	int key;
-	this->HandSegmentation();
-	//Map private data to external data
-	if (this->handFound == true)
-	{
-		/*Map to hand gesture struct to process hand */
-		HandGestureSt.dfdisthreshold = 5000/handDepthPoint.d;
-		HandGestureSt.HandPoint = cvPoint(this->handDepthPoint.p.x, this->handDepthPoint.p.y);
-		HandGestureSt.image = this->pRgbImg;
-		HandGestureSt.thr_image = this->pThImg;
-		HandGestureSt.handDepth = this->handDepthPoint.d;
-		HandGestureSt.RectTopHand = this->RectTop;
-		//Call hand processing
-		handProcessing();
-	}
+		rc = m_colorStream.start();
+		if (rc != openni::STATUS_OK)
+		{
+			printf("HandGesture: Couldn't start color stream:\n%s\n", openni::OpenNI::getExtendedError());
+			m_colorStream.destroy();
+			return rc;
+		}
+	}	
 	else
 	{
-		this->HandViewerDisplay();
+		printf("HandGesture: Couldn't find color stream:\n%s\n", openni::OpenNI::getExtendedError());
 	}
 
-	key = cvWaitKey(1);
-	HandViewer::cvKeyboard(key,NULL,NULL);
+	
+	/*NITE int */	
+	nite::NiTE::initialize();
+
+	/*Create hand tracking with m_device */
+	if (m_pHandTracker->create(&m_device) != nite::STATUS_OK) {
+		rc = openni::STATUS_ERROR; 
+	}
+
+	m_pHandTracker->startGestureDetection(nite::GESTURE_WAVE);
+
+	return rc; 
+}
+
+openni::Status HandViewer::InitOpenCV(int argc, char **argv)
+{
+	// Initialize HandSegmentation windows
+	cvNamedWindow(m_MainImgName, CV_WINDOW_AUTOSIZE);
+	cvNamedWindow(m_ThreImgName, CV_WINDOW_NORMAL);
+	cvMoveWindow(m_MainImgName, 20, 50);
+	cvMoveWindow(m_ThreImgName, 800, 50);
+
+	// Initialize pointers that point to images
+	this->pBiDepthImg = cvCreateImage(cvSize(W, H), IPL_DEPTH_8U, 1);
+	this->p2BiDepthImg = cvCreateImage(cvSize(W, H), IPL_DEPTH_16U, 1);
+	this->pDepthImg = cvCreateImage(cvSize(W, H), IPL_DEPTH_8U, 3);
+	this->pColorImg = cvCreateImage(cvSize(W, H), IPL_DEPTH_8U, 3);
+	
 	return openni::STATUS_OK;
 }
 
 
-void HandViewer::HandSegmentation()
+//KeyBoard ReadImages
+void HandViewer::OnKey(unsigned char key, int /*x*/, int /*y*/)
 {
-	nite::HandTrackerFrameRef handFrame;
+	switch (key)
+	{
+	case 27:
+		HandViewer::~HandViewer();
+		exit (1);
+	case 'd':
+		this->ppDisplayImg = &this->pDepthImg;
+		break;
+	case 'c':
+		this->ppDisplayImg = &this->pColorImg;
+		break;
+	case 'f':
+		// 
+		break;
+	default:
+		break;
+	}
+	this->pDisplayImg = *this->ppDisplayImg;
+}
+
+//ReadImages Images
+void HandViewer::ReadImages()
+{
 	openni::VideoFrameRef depthFrame;
+	openni::VideoFrameRef colorFrame;
+	
+	// Read depth frame
 	nite::Status rc = m_pHandTracker->readFrame(&handFrame);
-
-
-	IplImage* pDepthImg = cvCreateImage(cvSize(W,H), IPL_DEPTH_16U, 1);
-
 	if (rc != nite::STATUS_OK)
 	{
 		printf("GetNextData failed\n");
 		return;
 	}
-
 	depthFrame = handFrame.getDepthFrame();
-
+	// Map depth frame to OpenCV image structure
 	if (depthFrame.isValid())
 	{
-//		calculateHistogram(m_pDepthHist, MAX_DEPTH, depthFrame);
-//		getHandThreshold(depthFrame);
-		/*Copy depth data to image data*/
-		memcpy(pDepthImg->imageData, depthFrame.getData(), W*H*2);
-
-		cvCvtScale(pDepthImg, this->pImg, DEPTH_SCALE_FACTOR);
-
-		cvConvertImage(this->pImg, this->pRgbImg, CV_GRAY2RGB);
+		memcpy(p2BiDepthImg->imageData, depthFrame.getData(), W*H*2);
+		/*Convert depth data to binary image */
+		cvCvtScale(p2BiDepthImg, this->pBiDepthImg, DEPTH_SCALE_FACTOR);
+		/*Convert binary depth image to RGB Depth Image */
+		cvConvertImage(this->pBiDepthImg, this->pDepthImg, CV_GRAY2RGB);
+	}
+	else
+	{
+		/* depthFrame is invalid */
+		printf("HandGesture: Couldn't get depth frame:\n%s\n", openni::OpenNI::getExtendedError());
 	}
 
+	//Read Colour frame
+	if (m_colorStream.readFrame(&colorFrame) == openni::STATUS_OK)
+	{
+		/*Copy to Opencv image struture  */
+		memcpy(pColorImg->imageData, colorFrame.getData(), W*H*3);
+		cvConvertImage(this->pColorImg, this->pColorImg, CV_BGR2RGBA);
+	}
+	else
+	{
+		/* color frame is invalid */
+		printf("HandGesture: Couldn't get color frame:\n%s\n", openni::OpenNI::getExtendedError());
+	}
+}
+
+
+void HandViewer::DisPlayImg(void)
+{
+	cvShowImage(this->m_MainImgName, pDisplayImg);
+}
+void HandViewer::DisPlayImg(IplImage* pthrhImg)
+{
+	if(pthrhImg != NULL)
+	{
+		cvShowImage(this->m_MainImgName, pDisplayImg);
+	}
+	if(pthrhImg != NULL)
+	{
+		cvShowImage(this->m_ThreImgName, pthrhImg);
+	}
+}
+
+
+#if 0
+void HandViewer::GetHandPoint()
+{
 	const nite::Array<nite::GestureData>& gestures = handFrame.getGestures();
 	for (int i = 0; i < gestures.getSize(); ++i)
 	{
@@ -175,7 +246,7 @@ void HandViewer::HandSegmentation()
 		}
 	}
 
-	const nite::Array<nite::HandData>& hands= handFrame.getHands();
+	const nite::Array<nite::HandData>& = handFrame.getHands();
 	CvPoint2D32f handPoint = cvPoint2D32f(0,0);
 	CvPoint cvhandPoint = cvPoint(0, 0);
 	for (int i = 0; i < hands.getSize(); ++i)
@@ -213,150 +284,13 @@ void HandViewer::HandSegmentation()
 			//Get coordiation of hand point
 			m_pHandTracker->convertHandCoordinatesToDepth(hand3DPoint.x, hand3DPoint.y, hand3DPoint.z, (float*)&handPoint.x, (float*)&handPoint.y);
 			// Convert hand point to int
-			cvhandPoint = cvPointFrom32f(handPoint);
-		
+			cvhandPoint = cvPointFrom32f(handPoint);		
 			//Get hand
 			this->pThImg = this->getHandThreshold();
 
 			cvCircle(this->pRgbImg, cvhandPoint, 2, RED, 4, CV_AA, 0);
 		}
 	}
-
 }
+#endif
 
-
-int Colors[][3] = {{1, 0, 0}, {0, 1, 0}, {0, 0, 1}, {1, 1, 1}};
-int colorCount = 3;
-
-void HandViewer::DrawHistory(nite::HandTracker* pHandTracker, int id, HistoryBuffer<HISBUFFER>* pHistory)
-{
-	CvPoint2D32f Floatcoordinates = cvPoint2D32f(0,0);
-
-	int hisBufSize = pHistory->GetSize();
-
-	CvPoint* coordinates = new CvPoint[hisBufSize];
-
-	CvScalar color = cvScalar (255*(Colors[id % colorCount][0], 255*Colors[id % colorCount][1], 255*Colors[id % colorCount][2]));
-	color = YELLOW;
-
-	for (int i = 0; i < pHistory->GetSize(); ++i)
-	{
-		const nite::Point3f& position = pHistory->operator[](i);
-		pHandTracker->convertHandCoordinatesToDepth(position.x, position.y, position.z, &Floatcoordinates.x, &Floatcoordinates.y);
-		coordinates[i] = cvPointFrom32f(Floatcoordinates);
-	}
-
-	cvDrawSetofPoints(this->pRgbImg, coordinates, color, hisBufSize);
-}
-
-
-void HandViewer:: HandViewerDisplay()
-{	
-	cvShowImage("DepthImage", this->pRgbImg);	
-	if(this->handFound == true)
-	{
-		cvShowImage("ThresholdImage", this->pThImg);
-	}
-}
-
-IplImage* HandViewer::getHandThreshold()
-{
-	IplImage* img_t;
-
-	// Get hand depth point
-	openni::CoordinateConverter::convertWorldToDepth(m_depthStream, hand3DPoint.x, hand3DPoint.y, hand3DPoint.z, &handDepthPoint.p.x, &handDepthPoint.p.y, &handDepthPoint.d);
-
-	// Hand offset 
-	this->handOffset = 64000/handDepthPoint.d;
-
-	int y= 0 , x = 0;
-	CvRect rect;
-
-	rect.x = (this->handDepthPoint.p.x >= this->handOffset)? (this->handDepthPoint.p.x - this->handOffset) : 0;
-	rect.y = (this->handDepthPoint.p.y >= this->handOffset)? (this->handDepthPoint.p.y - this->handOffset) : 0;
-	rect.height = handOffset<<1;
-	rect.width = handOffset<<1;
-
-	rect.x = (rect.x + rect.width < W)? rect.x : W - rect.width;
-	rect.y = (rect.y + rect.height < H)? rect.y : H - rect.height;
-
-	this->RectTop = cvPoint(rect.x, rect.y);
-
-	img_t = cvCreateImage(cvSize(rect.width, rect.height), this->pImg->depth, this->pImg->nChannels);
-	uchar* pImg_t =  (uchar*)img_t->imageData;
-	cvSetImageROI(this->pImg, rect);
-	cvCopy(this->pImg, img_t, NULL);
-	cvResetImageROI(this->pImg);
-
-	//IplImage* img_t2 = cvCreateImage(cvSize(W, H), this->pImg->depth, this->pImg->nChannels);
-	//cvZero(img_t2);
-
-	int pixelValue = 0;
-	for (y = rect.y; y <  (rect.y + rect.height); ++y)
-	{
-		for (x = rect.x; x <  (rect.x + rect.width); ++x, pImg_t++)
-		{
-			pixelValue = *pImg_t;
-			if (pixelValue != 0 && (pixelValue/DEPTH_SCALE_FACTOR) < (handDepthPoint.d + 100000/handDepthPoint.d) && y < (rect.y + rect.height - 10000/handDepthPoint.d))
-			{	
-				*pImg_t = 255;
-				//cvSetReal2D(img_t2, y, x, 255);
-			}
-			else
-			{
-				*pImg_t = 0;
-			}
-		}
-	}
-
-	//cvShowImage("test", img_t2);
-	return img_t;
-}
-
-
-void HandViewer::OnKey(unsigned char key, int /*x*/, int /*y*/)
-{
-	switch (key)
-	{
-	case 27:
-		Finalize();
-		exit (1);
-	case 'd':
-		g_drawDepth = !g_drawDepth;
-		break;
-	case 's':
-		if (g_smoothing)
-		{
-			// Turn off smoothing
-			m_pHandTracker->setSmoothingFactor(0);
-			g_smoothing = FALSE;
-		}
-		else
-		{
-			m_pHandTracker->setSmoothingFactor((float)0.1);
-			g_smoothing = TRUE;
-		}
-		break;
-	case 'f':
-		// Draw frame ID
-		g_drawFrameId = !g_drawFrameId;
-		break;
-	}
-
-}
-
-openni::Status HandViewer::InitOpenCV(int argc, char **argv)
-{
-	// Initialize HandSegmentation windows
-	cvNamedWindow("DepthImage", CV_WINDOW_NORMAL);
-	cvNamedWindow("ThresholdImage", CV_WINDOW_NORMAL);
-	cvMoveWindow("DepthImage", 20, 50);
-	cvMoveWindow("ThresholdImage", 800, 50);
-
-	// Initialize pointers that point to images
-	this->pImg = cvCreateImage(cvSize(W, H), IPL_DEPTH_8U, 1);
-	//this->pThImg = cvCreateImage(cvSize(W, H), IPL_DEPTH_8U, 1);
-	this->pRgbImg = cvCreateImage(cvSize(W, H), IPL_DEPTH_8U, 3);
-
-	return openni::STATUS_OK;
-}

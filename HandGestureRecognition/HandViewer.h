@@ -1,13 +1,14 @@
 /*******************************************************************************
-*                                                                              *
-*   PrimeSense NiTE 2.0 - Hand Viewer Sample                                   *
-*   Copyright (C) 2012 PrimeSense Ltd.                                         *
-*                                                                              *
+**                                                                            
+**   File Name   : main.c
+**   Project     : Hand Gesture Recognition Using Kinect 
+**   Author      : Nguyen Trong Tri
+**   Description : Header file for module hand viewer
+**                                                                                                                                                   *
 *******************************************************************************/
 
-#ifndef _NITE_HAND_VIEWER_H_
-#define _NITE_HAND_VIEWER_H_
-
+#ifndef __HAND_VIEWER_H__
+#define	__HAND_VIEWER_H__
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc_c.h>
@@ -17,85 +18,71 @@
 #include "NiTE.h"
 #include "HistoryBuffer.h"
 
-
-#define MAX_DEPTH 4000
 #define W		  640
 #define H	      480
 
+#define MAX_STR_NAME (ONI_MAX_STR>>4)
 
-
-#define HISBUFFER  20
-extern std::map<int, HistoryBuffer<HISBUFFER> *> g_histories;
-
-
-typedef struct cvDepthPoint
-{
-	CvPoint p;
-	uint16_t d;
-}cvDepthPoint;
-
-typedef struct cvImgPoint
-{
-	CvPoint p;
-	uint8_t val;
-}cvImgPoint;
-
-
-//	openni::VideoStream depth, color;
-
+// Handviewer class
 class HandViewer
 {
 public:
-	HandViewer(const char* strSampleName);
-	virtual ~HandViewer();
+	HandViewer(const char* strSampleName, const char* strMWdName, const char* strThrWdName);
+	 ~HandViewer();
+	 
+	openni::Status Init(int argc, char **argv); // OpenNI/Nite and OpenCV init
+	void ReadImages();	//Does not return
+	void DisPlayImg();	//Display Img
+	void DisPlayImg(IplImage* pthrhImg);
+	void KeyBoard(unsigned char key, int x, int y);
 
-	virtual openni::Status Init(int argc, char **argv);
-	virtual openni::Status Run();	//Does not return
-
-	CvPoint RectTop;
-
+	nite::HandTracker*		m_pHandTracker;
+	nite::HandTrackerFrameRef handFrame;
+	IplImage* pBiDepthImg;
+	IplImage* pDisplayImg;
+	
 protected:
-	virtual void HandSegmentation();
-
-	virtual void HandViewerDisplay();
-
-	virtual void OnKey(unsigned char key, int x, int y);
-
-	virtual openni::Status InitOpenCV(int argc, char **argv);
-
-	void Finalize();
-
-	void DrawHistory(nite::HandTracker* pHandTracker, int id, HistoryBuffer<HISBUFFER>* pHistory);
+	//void DrawHistory(nite::HandTracker* pHandTracker, int id, HistoryBuffer<HISBUFFER>* pHistory);
 
 private:
+	/*********************************
+	*	private methods
+	*********************************/ 
+	openni::Status InitOpenNI(void);
+	openni::Status InitOpenCV(int argc, char **argv);
+	void OnKey(unsigned char key, int x, int y);	
 	HandViewer(const HandViewer&);
 	HandViewer& operator=(HandViewer&);
-	void handPointClear(){hand3DPoint.x  = 0; hand3DPoint.y = 0; hand3DPoint.z = 0;}; 
-
-	static HandViewer* ms_self;
-	static const CvPoint& cvhandPoint;
-	static void cvKeyboard(unsigned char key, int x, int y);
-
-	IplImage* HandViewer::getHandThreshold();
-
-	NitePoint3f hand3DPoint;
-	int				m_pDepthHist[MAX_DEPTH];
-	char			m_strSampleName[ONI_MAX_STR];
-
-	openni::Device		m_device;
-	openni::VideoStream* m_pstream;
-	nite::HandTracker* m_pHandTracker;
-
-	int handOffset;
-	bool handFound;
-
-	cvDepthPoint handDepthPoint;
-	IplImage* pRgbImg;
-	IplImage* pImg;
+	
+	/*********************************
+	* private variables
+	*********************************/
+	HandViewer* ms_self;	
+	//int				m_pDepthHist[MAX_DEPTH];
+	char			m_strSampleName[MAX_STR_NAME]; 
+	char			m_MainImgName[MAX_STR_NAME];
+	char			m_ThreImgName[MAX_STR_NAME];
+	
+	/*
+	* OpenNI, NITE platform
+	*/
+	openni::Device			m_device;
+	//openni::VideoStream		m_depthStream;
+	openni::VideoStream		m_colorStream;
+	/*
+	* pointer points to images
+	*/
+//	IplImage* pDisplayImg;
+	IplImage** ppDisplayImg;
+	IplImage* pDepthImg;
+	IplImage* pColorImg;
+//	IplImage* pBiDepthImg;
+	IplImage* p2BiDepthImg;
  	IplImage* pThImg;
-
-	CvVideoWriter	*writer;	/* File recording handle */
+	
+	/* File recording handle */
+	CvVideoWriter	*writer;	
 };
 
 
-#endif // _NITE_HAND_VIEWER_H_
+#endif// __HAND_VIEWER_H__
