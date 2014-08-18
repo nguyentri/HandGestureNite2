@@ -12,6 +12,13 @@
 #include <OpenNI.h>
 #include <Utilities.h>
 
+
+
+
+
+/*
+* Fuction to draw histogram of depth image
+*/
 void calculateHistogram(int* pHistogram, int histogramSize, const openni::VideoFrameRef& depthFrame)
 {
 	const openni::DepthPixel* pDepth = (const openni::DepthPixel*)depthFrame.getData();
@@ -47,6 +54,7 @@ void calculateHistogram(int* pHistogram, int histogramSize, const openni::VideoF
 }
 
 
+/*Function to draw a set of points */
 void cvDrawSetofPoints(IplImage* ImgDraw, CvPoint* points, CvScalar color, int point_Num)
 {
 	CvPoint p1 = points[0];
@@ -54,9 +62,36 @@ void cvDrawSetofPoints(IplImage* ImgDraw, CvPoint* points, CvScalar color, int p
 	for(int idx = 1; idx < point_Num ; idx++)
 	{
 		p2 = points[idx];
-		cvLine(ImgDraw, p1, p2, YELLOW, 2, 8, 0);
+		cvLine(ImgDraw, p1, p2, color, 2, 8, 0);
 		p1 = p2;
 	}
 }
+
+
+/*Function to element image */
+IplImage* setImgROI_v(const IplImage* in_img, const CvSeq* contour)
+{
+	//IplImage*	out_img; 
+ 	CvRect	CvRectgl = cvBoundingRect((CvSeq*)contour);
+	//Draw box of hand
+	CvPoint p1 = cvPoint(CvRectgl.x, CvRectgl.y);
+	CvPoint p2 = cvPoint(CvRectgl.x + CvRectgl.width, CvRectgl.y + CvRectgl.height);
+	//create temporary image
+	IplImage* img_t = cvCreateImage(cvSize(CvRectgl.width, CvRectgl.height), in_img->depth, in_img->nChannels);
+	cvSetImageROI((IplImage*)in_img, CvRectgl);
+	cvCopy(in_img, img_t, NULL);
+	cvResetImageROI((IplImage*)in_img);
+	//copy to out image
+	//out_img = cvCreateImage(cvSize(CvRectgl.width, CvRectgl.height), img_t->depth, img_t->nChannels);
+	//cvCopy(img_t, out_img,	NULL);	
+	//release image
+	//cvReleaseImage(&img_t);
+
+	return img_t;
+}
+
+
+
+
 
 #endif // _UTILITIES_

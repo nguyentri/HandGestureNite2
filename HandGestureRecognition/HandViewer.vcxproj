@@ -183,19 +183,27 @@ xcopy /D /F /Y "$(ProjectDir)\glut64.dll" "$(OutDir)"
     </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="GestureRecognition.cpp" />
+    <ClCompile Include="HandFeatEx.cpp" />
+    <ClCompile Include="HandLabel.cpp" />
+    <ClCompile Include="HandMoment.cpp" />
+    <ClCompile Include="HandSegm.cpp" />
     <ClCompile Include="HandViewer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Palm.cpp" />
     <ClCompile Include="PalmFinder.cpp" />
     <ClCompile Include="PointFunctions.cpp" />
+    <ClCompile Include="Utilities.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="GestureRecognition.h" />
+    <ClInclude Include="HandFeatEx.h" />
+    <ClInclude Include="HandLabel.h" />
+    <ClInclude Include="HandMoment.h" />
+    <ClInclude Include="HandSegm.h" />
     <ClInclude Include="HandViewer.h" />
     <ClInclude Include="Palm.h" />
     <ClInclude Include="PalmFinder.h" />
     <ClInclude Include="PointFunctions.h" />
+    <ClInclude Include="Utilities.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -18,8 +18,8 @@
 #include "NiTE.h"
 #include "HistoryBuffer.h"
 
-#define W		  640
-#define H	      480
+#define WIDTH		  640
+#define HEIGHT	      480
 
 #define MAX_STR_NAME (ONI_MAX_STR>>4)
 

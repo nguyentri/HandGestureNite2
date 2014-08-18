@@ -7,7 +7,7 @@
 
 #include "HandViewer.h"
 #include "HandSegm.h"
-//#include "GestureRecognition.h"
+#include "HandFeatEx.h"
 
 int main(int argc, char** argv)
 {
@@ -16,8 +16,10 @@ int main(int argc, char** argv)
 	/*Init camera */
 	openni::Status rc = openni::STATUS_OK;
 	/*Declare objects */
+
 	HandViewer HandViewerObj("Hand Geture", "Main Window", "Threshold Image");
 	HandSegm HandSegmObj;
+
 	/*Init kinect open ni/ open cv */
 	rc = HandViewerObj.Init(argc, argv);
 	/* Check if init is ok? */
@@ -26,6 +28,11 @@ int main(int argc, char** argv)
 		return 1;
 	}
 	
+	/*Hand processing initialization. */
+	init_recording(&HandGestureSt);
+	//init_windows();
+	init_HandGestureSt(&HandGestureSt);
+
 	/*Inifinite loop to process hand */
 	for(;;)
 	{
@@ -52,6 +59,16 @@ int main(int argc, char** argv)
 				HandSegmObj.HandSegmentation(0);
 				//HandSegm::~HandSegm();
 				//hand feature extraction
+				/*Map to hand gesture struct to process hand */
+				HandGestureSt.dfdisthreshold = 5000/HandSegmObj.handPoint[0].d;
+				HandGestureSt.HandPoint = cvPoint(HandSegmObj.handPoint[0].p.x, HandSegmObj.handPoint[0].p.y);
+				HandGestureSt.image = HandViewerObj.pDisplayImg;
+				HandGestureSt.thr_image = HandSegmObj.pThImg;
+				//HandGestureSt.mm_image = this->pMMImg;
+				HandGestureSt.handDepth = HandSegmObj.handPoint[0].d;
+				HandGestureSt.RectTopHand = HandSegmObj.RectTop;
+				//Call hand processing
+				handProcessing();
 				HandViewerObj.DisPlayImg(HandSegmObj.pThImg);
 			}
 			else// nohand found

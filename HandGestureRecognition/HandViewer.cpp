@@ -8,7 +8,7 @@
 #include <map>
 #include "HandViewer.h"
 #include "Utilities.h"
-#include "GestureRecognition.h"
+#include "HandFeatEx.h"
 
 using namespace std;
 
@@ -137,10 +137,10 @@ openni::Status HandViewer::InitOpenCV(int argc, char **argv)
 	cvMoveWindow(m_ThreImgName, 800, 50);
 
 	// Initialize pointers that point to images
-	this->pBiDepthImg = cvCreateImage(cvSize(W, H), IPL_DEPTH_8U, 1);
-	this->p2BiDepthImg = cvCreateImage(cvSize(W, H), IPL_DEPTH_16U, 1);
-	this->pDepthImg = cvCreateImage(cvSize(W, H), IPL_DEPTH_8U, 3);
-	this->pColorImg = cvCreateImage(cvSize(W, H), IPL_DEPTH_8U, 3);
+	this->pBiDepthImg = cvCreateImage(cvSize(WIDTH, HEIGHT), IPL_DEPTH_8U, 1);
+	this->p2BiDepthImg = cvCreateImage(cvSize(WIDTH, HEIGHT), IPL_DEPTH_16U, 1);
+	this->pDepthImg = cvCreateImage(cvSize(WIDTH, HEIGHT), IPL_DEPTH_8U, 3);
+	this->pColorImg = cvCreateImage(cvSize(WIDTH, HEIGHT), IPL_DEPTH_8U, 3);
 	
 	return openni::STATUS_OK;
 }
@@ -186,7 +186,7 @@ void HandViewer::ReadImages()
 	// Map depth frame to OpenCV image structure
 	if (depthFrame.isValid())
 	{
-		memcpy(p2BiDepthImg->imageData, depthFrame.getData(), W*H*2);
+		memcpy(p2BiDepthImg->imageData, depthFrame.getData(), WIDTH*HEIGHT*2);
 		/*Convert depth data to binary image */
 		cvCvtScale(p2BiDepthImg, this->pBiDepthImg, DEPTH_SCALE_FACTOR);
 		/*Convert binary depth image to RGB Depth Image */
@@ -202,7 +202,7 @@ void HandViewer::ReadImages()
 	if (m_colorStream.readFrame(&colorFrame) == openni::STATUS_OK)
 	{
 		/*Copy to Opencv image struture  */
-		memcpy(pColorImg->imageData, colorFrame.getData(), W*H*3);
+		memcpy(pColorImg->imageData, colorFrame.getData(), WIDTH*HEIGHT*3);
 		cvConvertImage(this->pColorImg, this->pColorImg, CV_BGR2RGBA);
 	}
 	else
