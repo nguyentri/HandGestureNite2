@@ -44,7 +44,7 @@ extern float m_pDepthHist[MAX_DEPTH];
 
 // angle ranges of thumb and index finger of the left hand relative to its COG
 #define MIN_THUMB  136
-#define MAX_THUMB  200
+#define MAX_THUMB  270
 
 #define MIN_INDEX  104
 #define MAX_INDEX  135
@@ -56,8 +56,7 @@ extern float m_pDepthHist[MAX_DEPTH];
 #define MAX_RING   90
 
 #define MAX_LITTLE  64
-#define MIN_LITTLE   0
-
+#define MIN_LITTLE  -30
 enum FingerNameE {
 	LITTLE, RING, MIDDLE, INDEX, THUMB, UNKNOWN};
 

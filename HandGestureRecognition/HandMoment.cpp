@@ -79,5 +79,9 @@ float angleToCOG(CvPoint tipPt, CvPoint cogPt, int contourAxisAngle)
 	//return angleTip;
     int offsetAngleTip = angleTip + (90 - contourAxisAngle);
     // this addition ensures that the hand is orientated straight up
-    return offsetAngleTip;
+
+	//if (offsetAngleTip <= 180)
+	//	return offsetAngleTip;
+	//else
+		return abs(offsetAngleTip);
 }  // end of angleToCOG()

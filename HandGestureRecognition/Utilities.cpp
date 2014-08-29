@@ -62,7 +62,7 @@ void cvDrawSetofPoints(IplImage* ImgDraw, CvPoint* points, CvScalar color, int p
 	for(int idx = 1; idx < point_Num ; idx++)
 	{
 		p2 = points[idx];
-		cvLine(ImgDraw, p1, p2, color, 2, 8, 0);
+		cvLine(ImgDraw, p1, p2, YELLOW, 2, 8, 0);
 		p1 = p2;
 	}
 }

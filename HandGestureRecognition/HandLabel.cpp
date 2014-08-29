@@ -55,7 +55,8 @@ void labelFingers(HandGetureTypeSt* pHandGestureSt)
 	float contourAxisAngle = 180  - pHandGestureSt->contourAxisAngle;
     int i = pHandGestureSt->num_fingers - 1;
     while ((i >= 0)) {
-		int angle = angleToCOG(pHandGestureSt->fingers[i], pHandGestureSt->hand_center_mm, contourAxisAngle);
+		int angle = angleToCOG(pHandGestureSt->fingers[i], pHandGestureSt->hand_center, contourAxisAngle);
+
 
       // check for thumb
       if ((angle <=  MAX_THUMB) && (angle > MIN_THUMB) && !foundThumb) {
