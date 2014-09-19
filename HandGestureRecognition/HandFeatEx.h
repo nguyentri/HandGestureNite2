@@ -119,6 +119,7 @@ typedef struct HandGesture {
 	int		num_fingers;
 	int		hand_radius;
 	int		num_defects;
+	float    angle_defects[NUM_DEFECTS];
 	int		dfdisthreshold;
 	int		handDepth;
 	float contourAxisAngle;
