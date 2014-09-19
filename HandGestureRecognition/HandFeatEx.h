@@ -30,7 +30,7 @@ extern float m_pDepthHist[MAX_DEPTH];
 #define VIDEO_FILE	"video.avi"
 #define VIDEO_FORMAT	CV_FOURCC('M', 'J', 'P', 'G')
 #define NUM_FINGERS 6 
-#define NUM_DEFECTS	5
+#define NUM_DEFECTS	4
 
 #define WHITE   CV_RGB(255, 255, 255)
 #define BLACK	CV_RGB(0, 0 ,0)
@@ -108,7 +108,7 @@ typedef struct HandGesture {
 	CvMemStorage	*defects_st;
 	CvMemStorage	*handbox_str;
 				
-	IplConvKernel* ker;;	/* Kernel for morph operations */
+	IplConvKernel* ker;	/* Kernel for morph operations */
 
     CvSeq* palm; //palm seq
 	CvMemStorage* palmstorage;
@@ -172,5 +172,7 @@ void findHand(HandGetureTypeSt* pHandGestureSt);
 std::vector<CvPoint> getListofPointofThImg(IplImage* pThImg, CvPoint handPoint);
 
 void handProcessing(void);
+
+void handTrainingProcessing(void);
 
 #endif

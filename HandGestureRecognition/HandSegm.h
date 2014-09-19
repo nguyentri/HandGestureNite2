@@ -61,6 +61,9 @@ public:
 
 	IplImage* pThImg;
 	IplImage* pMmImg;
+
+	IplImage* img_t;
+
 	bool handFound[2];	
 	cvDPoint handPoint[2];
 
@@ -88,7 +91,7 @@ private:
 
 	NitePoint3f hand3DPoint[2];
 	/*hand point with depthData */
-	IplImage* img_t;
+	//IplImage* img_t;
 	IplImage* img_t0;
 	IplImage* pBinImag;
 	IplImage* pRgbImg;	

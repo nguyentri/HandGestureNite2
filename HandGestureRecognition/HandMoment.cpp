@@ -67,21 +67,32 @@ float calculateTilt(const IplImage*	input_image)
 
 
 
-float angleToCOG(CvPoint tipPt, CvPoint cogPt, int contourAxisAngle)
+float angleToCOG(CvPoint tipPt, CvPoint cogPt, float contourAxisAngle)
   /* calculate angle of tip relative to the COG, remembering to add the
      hand contour angle so that the hand is orientated straight up */
 {
-    int yOffset = cogPt.y - tipPt.y;    // make y positive up screen
-    int xOffset = tipPt.x - cogPt.x;
+	float offsetAngleTip;
+
+    int yOffset;    // make y positive up screen
+	int xOffset;
+
+	yOffset = cogPt.y - tipPt.y;
+	xOffset = tipPt.x - cogPt.x;
+	/*
+	if ( cogPt.x >= tipPt.x)
+	{
+		xOffset = tipPt.x - cogPt.x;
+	}else{
+		xOffset = cogPt.x - tipPt.x;
+	}*/
 
     double theta = atan2(yOffset, xOffset);
     float angleTip = (float)theta*180/PI;
 	//return angleTip;
-    int offsetAngleTip = angleTip + (90 - contourAxisAngle);
-    // this addition ensures that the hand is orientated straight up
 
-	//if (offsetAngleTip <= 180)
-	//	return offsetAngleTip;
+    offsetAngleTip = angleTip + (contourAxisAngle - 90);
+
 	//else
-		return abs(offsetAngleTip);
+	//return abs(offsetAngleTip);
+	return offsetAngleTip;
 }  // end of angleToCOG()

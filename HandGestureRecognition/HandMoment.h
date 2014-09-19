@@ -12,7 +12,7 @@
 #define PI (double)3.14159265
 
 float calculateTilt(const IplImage*	input_image);
-float angleToCOG(CvPoint tipPt, CvPoint cogPt, int contourAxisAngle);
+float angleToCOG(CvPoint tipPt, CvPoint cogPt, float contourAxisAngle);
 
 #endif	//end _HANDMOMENT_H_
   

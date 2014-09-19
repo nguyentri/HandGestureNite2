@@ -19,6 +19,7 @@ void HandSegm::HandSegmInit(	IplImage* BinImagP, IplImage* RgbImgP,
 	phandFrame	= handFrame;
 	pBinImag = BinImagP;
 	pRgbImg = RgbImgP;
+	img_t = cvCreateImage(cvSize(200, 200), this->pBinImag->depth, this->pBinImag->nChannels);
 }
 
 HandSegm::~HandSegm()
@@ -131,7 +132,8 @@ void HandSegm::DrawHistory(nite::HandTracker* pHandTracker, int id, HistoryBuffe
 void HandSegm::HandSegmentation(nite::HandId handID)
 {
 	// Hand offset 1
-	this->handOffset = 64000/handPoint[handID].d;
+	//this->handOffset = 60000/handPoint[handID].d;
+	this->handOffset = 100;
 	//int handOffset0 = 64000/handPoint[handID].d;
 
 	int y= 0 , x = 0;
@@ -141,8 +143,8 @@ void HandSegm::HandSegmentation(nite::HandId handID)
 
 	rect.x = (this->handPoint[handID].p.x >= this->handOffset)? (this->handPoint[handID].p.x - this->handOffset) : 0;
 	rect.y = (this->handPoint[handID].p.y >= this->handOffset)? (this->handPoint[handID].p.y - this->handOffset) : 0;
-	rect.height = this->handOffset<<1;
-	rect.width = this->handOffset<<1;
+	rect.height = 190;
+	rect.width = 190;
 
 	rect.x = (rect.x + rect.width < WIDTH)? rect.x : WIDTH - rect.width;
 	rect.y = (rect.y + rect.height < HEIGHT)? rect.y : HEIGHT - rect.height;

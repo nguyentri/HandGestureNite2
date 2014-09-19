@@ -40,6 +40,8 @@ public:
 	nite::HandTrackerFrameRef handFrame;
 	IplImage* pBiDepthImg;
 	IplImage* pDisplayImg;
+
+	bool training_flag;
 	
 protected:
 	//void DrawHistory(nite::HandTracker* pHandTracker, int id, HistoryBuffer<HISBUFFER>* pHistory);
@@ -79,6 +81,7 @@ private:
 //	IplImage* pBiDepthImg;
 	IplImage* p2BiDepthImg;
  	IplImage* pThImg;
+
 	
 	/* File recording handle */
 	CvVideoWriter	*writer;	

@@ -85,7 +85,7 @@
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalLibraryDirectories>$(OutDir);$(NITE2_LIB);$(OPENNI2_LIB);..\..\..\Libs</AdditionalLibraryDirectories>
-      <AdditionalDependencies>opencv_core$(OPENCV_VER).lib;opencv_imgproc$(OPENCV_VER).lib;opencv_highgui$(OPENCV_VER).lib;NiTE2.lib;OpenNI2.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>opencv_core$(OPENCV_VER).lib;opencv_imgproc$(OPENCV_VER).lib;opencv_highgui$(OPENCV_VER).lib;opencv_video$(OPENCV_VER).lib;opencv_ml$(OPENCV_VER).lib;opencv_legacy$(OPENCV_VER).lib;NiTE2.lib;OpenNI2.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <PostBuildEvent>
       <Command>xcopy /D /S /F /Y "$(OPENNI2_REDIST)\*" "$(OutDir)"
@@ -184,9 +184,11 @@ xcopy /D /F /Y "$(ProjectDir)\glut64.dll" "$(OutDir)"
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="HandFeatEx.cpp" />
+    <ClCompile Include="HandGestRcg.cpp" />
     <ClCompile Include="HandLabel.cpp" />
     <ClCompile Include="HandMoment.cpp" />
     <ClCompile Include="HandSegm.cpp" />
+    <ClCompile Include="HandTranning.cpp" />
     <ClCompile Include="HandViewer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Palm.cpp" />

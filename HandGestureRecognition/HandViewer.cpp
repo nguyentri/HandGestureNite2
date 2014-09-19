@@ -34,6 +34,7 @@ HandViewer::HandViewer(const char* strSampleName, const char* strMWdName, const 
 	strncpy_s(m_ThreImgName, strThrWdName, MAX_STR_NAME);
 	this->ppDisplayImg = &this->pDepthImg;
 	this->m_pHandTracker = new nite::HandTracker;
+	this->training_flag = FALSE;
 }
 
 //Decontructor
@@ -160,8 +161,8 @@ void HandViewer::OnKey(unsigned char key, int /*x*/, int /*y*/)
 	case 'c':
 		this->ppDisplayImg = &this->pColorImg;
 		break;
-	case 'f':
-		// 
+	case 't': 
+		this->training_flag = TRUE;
 		break;
 	default:
 		break;

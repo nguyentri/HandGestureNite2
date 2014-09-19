@@ -1,26 +1,35 @@
-#include <opencv2/core/core.hpp>
-#include <opencv2/imgproc/imgproc_c.h>
-#include <opencv2/highgui/highgui_c.h>
 
-void saveTrainingImage(const IplImage*	input_image)
+#ifndef HAND_TRAINING_H
+#define HAND_TRAINING_H
+
+#ifdef HAND_TRAINING
+	#define EXTERN
+#else
+	#define EXTERN extern
+#endif
+
+
+#define FINGER_NUM 		5
+#define SAMPLE_NUM_MAX  32
+#define DEPTH_NUM		1
+#define GEST_NUM		11
+
+extern const char* trDBC_FileName_c;
+
+typedef struct TRAININGDATA_ST
 {
-   static int imgfpsIdx = 0;
-   static int imgtrainingIdx = 0;
-   
-   char ImgFileName_str[20] =".\\images\\imgxxxx.jpg";
-   /* Get file name. */
-   sprintf(str_temp,"%04d", imgtrainingIdx);
-   strncpy(ImgFileName_str + 13, str_temp, 4);
-  
-	if((imgIdx % 60) == 0)
-	{
-		cvSaveImage(ImgFileName_str, pHandGestureSt->thr_image);
-		imgtrainingIdx++;
-	}
+	uint8_t finger_num_u8;
+	float angle_f[FINGER_NUM];
+	float dis_f[FINGER_NUM];
+	float angleDefect_f[4];
+};
 
-	if(imgtrainingIdx == 9000)
-	{
-		imgtrainingIdx = 0;
-	}
-	imgIdx++;
-}
+
+EXTERN	TRAININGDATA_ST trainingData_st;
+
+void sortArray_V(float* const arr_pc, const uint8_t arrLen_u8);
+
+int createDBC_s32(const IplImage*	input_image);
+
+
+#endif
