@@ -31,8 +31,8 @@ const char* trDBC_FileName_c = ".\\training_data\\dbc\\dbc.csv";
 //const char* d_65cm 	= "d065";
 //const char* d_70cm 	= "d700";
 //const char* d_100cm = "d100";
-const char* fname[DEPTH_NUM] = {"d700"};
-const uint16_t  depth_u16[DEPTH_NUM] = {700};
+const char* fname[DEPTH_NUM] = {"d775"};
+const uint16_t  depth_u16[DEPTH_NUM] = {775};
 char t_temp_c[2];
 
 void sortArray_V(float* const arr_pc, const uint8_t arrLen_u8)
@@ -53,6 +53,27 @@ void sortArray_V(float* const arr_pc, const uint8_t arrLen_u8)
         }
     }
 }
+
+
+void sortFingers_V(CvPoint* arr_pc, const uint8_t arrLen_u8)
+{
+   uint8_t u8_len = arrLen_u8;
+   uint8_t i, j;
+   CvPoint temp;
+   for(i=0;i<u8_len;i++)
+    {
+        for(j=i;j<u8_len;j++)
+        {
+            if(arr_pc[i].x > arr_pc[j].x && (arr_pc[j].x != 0 && arr_pc[j].y != 0))
+            {
+				temp = arr_pc[i];
+				arr_pc[i] = arr_pc[j];
+				arr_pc[j] = temp;
+            }
+        }
+    }
+}
+
 
 int createDBC_s32(const IplImage*	input_image)
 {
@@ -120,18 +141,22 @@ int createDBC_s32(const IplImage*	input_image)
 					HandGestureSt.thr_image = t_imgSamp_pImg;
 					HandGestureSt.handDepth = depth_u16[t_depth_idx_u8];	
 					handTrainingProcessing();
+
+					//sortFingers_V(HandGestureSt.fingers, FINGER_NUM);
+
+
 					//map to training data
 					trainingData_st.finger_num_u8 = HandGestureSt.num_fingers;	
 					/*Write to training data*/
 					fprintf(g_trnDBC_pfi, "%d;", trainingData_st.finger_num_u8);
 					for (int idx = 0; idx < trainingData_st.finger_num_u8; idx++)
 					{
-						trainingData_st.angle_f[idx] = angleToCOG(HandGestureSt.fingers[idx], HandGestureSt.hand_center, HandGestureSt.contourAxisAngle);
-						trainingData_st.dis_f[idx] = distanceP2P((const CvPoint*)&HandGestureSt.hand_center, (const CvPoint*)&HandGestureSt.fingers[idx]);
+						trainingData_st.angle_f[idx] = angleToCOG(HandGestureSt.fingers[idx], HandGestureSt.hand_center_mm, HandGestureSt.contourAxisAngle);
+						trainingData_st.dis_f[idx] = distanceP2P((const CvPoint*)&HandGestureSt.hand_center_mm, (const CvPoint*)&HandGestureSt.fingers[idx]) - HandGestureSt.hand_radius;
 					}
 
-					sortArray_V((float* const)&trainingData_st.dis_f[0], (const uint8_t)FINGER_NUM);
-					sortArray_V((float* const)&trainingData_st.angle_f[0], (const uint8_t)FINGER_NUM);
+					//sortArray_V((float* const)&trainingData_st.dis_f[0], (const uint8_t)FINGER_NUM);
+					//sortArray_V((float* const)&trainingData_st.angle_f[0], (const uint8_t)FINGER_NUM);
 
 					for (int idx = 0; idx < FINGER_NUM; idx++)
 					{

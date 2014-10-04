@@ -3,6 +3,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 2012
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "HandViewer", "HandViewer.vcxproj", "{5AD24B49-7B1B-4A76-AFC8-0C1209D1180C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Interface", "Interface\Interface.vcxproj", "{6F6FE7E3-EA30-4903-A850-D05EE0C54EDE}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -19,6 +21,12 @@ Global
 		{5AD24B49-7B1B-4A76-AFC8-0C1209D1180C}.Release|Win32.Build.0 = Release|Win32
 		{5AD24B49-7B1B-4A76-AFC8-0C1209D1180C}.Release|x64.ActiveCfg = Release|x64
 		{5AD24B49-7B1B-4A76-AFC8-0C1209D1180C}.Release|x64.Build.0 = Release|x64
+		{6F6FE7E3-EA30-4903-A850-D05EE0C54EDE}.Debug|Win32.ActiveCfg = Debug|Win32
+		{6F6FE7E3-EA30-4903-A850-D05EE0C54EDE}.Debug|Win32.Build.0 = Debug|Win32
+		{6F6FE7E3-EA30-4903-A850-D05EE0C54EDE}.Debug|x64.ActiveCfg = Debug|Win32
+		{6F6FE7E3-EA30-4903-A850-D05EE0C54EDE}.Release|Win32.ActiveCfg = Release|Win32
+		{6F6FE7E3-EA30-4903-A850-D05EE0C54EDE}.Release|Win32.Build.0 = Release|Win32
+		{6F6FE7E3-EA30-4903-A850-D05EE0C54EDE}.Release|x64.ActiveCfg = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

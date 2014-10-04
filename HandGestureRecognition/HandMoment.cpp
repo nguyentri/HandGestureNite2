@@ -2,6 +2,7 @@
 
 #include "HandMoment.h"
 #include "HandFeatEx.h"
+#include "Utilities.h"
 
 float calculateTilt(const IplImage*	input_image)
   /* Return integer degree angle of contour's major axis relative to the horizontal, 
@@ -31,7 +32,7 @@ float calculateTilt(const IplImage*	input_image)
 		if (m00 != 0) {   // calculate center
 			  HandGestureSt.hand_center_mm.x = (m10/m00);
 			  HandGestureSt.hand_center_mm.y  = (m01/m00);
-			cvCircle(HandGestureSt.image, HandGestureSt.hand_center_mm, 2,
+			cvCircle(HandGestureSt.image, cvPointMove(HandGestureSt.hand_center_mm, HandGestureSt.RectTopHand), 2,
 			RED, 1, CV_AA, 0);
 		 }
 
@@ -90,7 +91,28 @@ float angleToCOG(CvPoint tipPt, CvPoint cogPt, float contourAxisAngle)
     float angleTip = (float)theta*180/PI;
 	//return angleTip;
 
+ //   if ((xOffset > 0) && (yOffset == 0))
+ //     angleTip =  0;
+ //   else if ((xOffset < 0) && (yOffset == 0))
+ //     angleTip =  -90;
+ //   else if ((xOffset > 0) && (yOffset > 0))  // 0 to 45 degrees
+ //     angleTip =  angleTip;
+ //   else if ((xOffset > 0) && (yOffset < 0))  // -45 to 0
+ //     angleTip =  (180 + angleTip);   // change to counter-clockwise angle measure
+ //   else if ((xOffset < 0) && (yOffset > 0))   // 45 to 90
+ //     angleTip =  angleTip;
+ //   else if ((xOffset < 0) && (yOffset < 0))   // -90 to -45
+ //     angleTip =  (180 + angleTip);  // change to counter-clockwise angle measure
+	//else
+	//  angleTip =  0;
+
+
     offsetAngleTip = angleTip + (contourAxisAngle - 90);
+
+	if(offsetAngleTip < 0)
+	{
+		offsetAngleTip =  360.0f + offsetAngleTip;
+	}
 
 	//else
 	//return abs(offsetAngleTip);

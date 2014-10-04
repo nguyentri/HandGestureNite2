@@ -22,7 +22,7 @@
 using namespace cv;
 
 /*Defines  */
-#define NUMBER_OF_TRAINING_SAMPLES 113
+#define NUMBER_OF_TRAINING_SAMPLES 144
 #define ATTRIBUTES_PER_SAMPLE 11
 #define NUMBER_OF_TESTING_SAMPLES 1
 #define NUMBER_OF_CLASSES 1
@@ -131,16 +131,17 @@ int handRecognition(void)
 	//fprintf(g_recg_pfi, "%d;", feature_vector_st.finger_num_u8);
 	testing_data.at<float>(0, 0) = (float)feature_vector_st.finger_num_u8;
 
+	//sortFingers_V(HandGestureSt.fingers, FINGER_NUM);
+
 	for (int idx = 0; idx < feature_vector_st.finger_num_u8; idx++)
 	{
-		feature_vector_st.angle_f[idx] = angleToCOG(HandGestureSt.fingers[idx], HandGestureSt.hand_center, HandGestureSt.contourAxisAngle);
-		feature_vector_st.dis_f[idx] = distanceP2P((const CvPoint*)&HandGestureSt.hand_center, (const CvPoint*)&HandGestureSt.fingers[idx]);
+		feature_vector_st.angle_f[idx] = angleToCOG(HandGestureSt.fingers[idx], HandGestureSt.hand_center_mm, HandGestureSt.contourAxisAngle);
+		feature_vector_st.dis_f[idx] = distanceP2P((const CvPoint*)&HandGestureSt.hand_center_mm, (const CvPoint*)&HandGestureSt.fingers[idx]) - HandGestureSt.hand_radius;
 		//feature_vector_st.dis_f[idx] = feature_vector_st.dis_f[idx]/HandGestureSt.hand_radius;
 	}
 
-	sortArray_V((float* const)&feature_vector_st.dis_f[0], (const uint8_t)FINGER_NUM);
-	sortArray_V((float* const)&feature_vector_st.angle_f[0], (const uint8_t)FINGER_NUM);
-
+	//sortArray_V((float* const)&feature_vector_st.dis_f[0], (const uint8_t)FINGER_NUM);
+	//sortArray_V((float* const)&feature_vector_st.angle_f[0], (const uint8_t)FINGER_NUM);
 
 	int idy = 0;
 	int idx;

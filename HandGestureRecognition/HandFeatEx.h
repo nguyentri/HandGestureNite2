@@ -9,6 +9,9 @@
 #include <HandMoment.h>
 
 
+#define WIDTH_REC	640
+#define HEITH_REC	480
+
 #define C_DEPTH_STREAM 0
 #define C_COLOR_STREAM 1
 
@@ -29,7 +32,7 @@ extern float m_pDepthHist[MAX_DEPTH];
 
 #define VIDEO_FILE	"video.avi"
 #define VIDEO_FORMAT	CV_FOURCC('M', 'J', 'P', 'G')
-#define NUM_FINGERS 6 
+#define NUM_FINGERS 5 
 #define NUM_DEFECTS	4
 
 #define WHITE   CV_RGB(255, 255, 255)
@@ -62,16 +65,16 @@ enum FingerNameE {
 
 
 inline float distanceP2P(const CvPoint* a, const CvPoint* b){
-	float d= sqrt(fabs( pow(a->
-		x-b->x,2) + pow(a->y-b->y,2) )) ;  
+	float d= (float)sqrt(fabs( (float)pow(a->
+		x-b->x,2) + (float)pow(a->y-b->y,2) )) ;  
 	return d;
 }
 
 inline float getAngle(const CvPoint* s,const CvPoint* f, CvPoint* e){
 	float l1 = distanceP2P(f,s);
 	float l2 = distanceP2P(f,e);
-	float dot=(s->x-f->x)*(e->x-f->x) + (s->y-f->y)*(e->y-f->y);
-	float angle = acos(dot/(l1*l2));
+	float dot=  (float)((s->x-f->x)*(e->x-f->x) + (s->y-f->y)*(e->y-f->y));
+	float angle = (float)acos(dot/(l1*l2));
 	angle = (float)angle*180/PI;
 	return angle;
 }
@@ -117,7 +120,7 @@ typedef struct HandGesture {
 	CvMemStorage* fingerstorage;
 
 	int		num_fingers;
-	int		hand_radius;
+	float		hand_radius;
 	int		num_defects;
 	float    angle_defects[NUM_DEFECTS];
 	int		dfdisthreshold;

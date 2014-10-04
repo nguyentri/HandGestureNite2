@@ -19,7 +19,7 @@ void HandSegm::HandSegmInit(	IplImage* BinImagP, IplImage* RgbImgP,
 	phandFrame	= handFrame;
 	pBinImag = BinImagP;
 	pRgbImg = RgbImgP;
-	img_t = cvCreateImage(cvSize(200, 200), this->pBinImag->depth, this->pBinImag->nChannels);
+	//img_t = cvCreateImage(cvSize(160, 160), this->pBinImag->depth, this->pBinImag->nChannels);
 }
 
 HandSegm::~HandSegm()
@@ -132,9 +132,8 @@ void HandSegm::DrawHistory(nite::HandTracker* pHandTracker, int id, HistoryBuffe
 void HandSegm::HandSegmentation(nite::HandId handID)
 {
 	// Hand offset 1
-	//this->handOffset = 60000/handPoint[handID].d;
-	this->handOffset = 100;
-	//int handOffset0 = 64000/handPoint[handID].d;
+	//this->handOffset = 80;
+	this->handOffset = 64000/handPoint[handID].d;
 
 	int y= 0 , x = 0;
 	openni::DepthPixel depth = 0;
@@ -143,8 +142,10 @@ void HandSegm::HandSegmentation(nite::HandId handID)
 
 	rect.x = (this->handPoint[handID].p.x >= this->handOffset)? (this->handPoint[handID].p.x - this->handOffset) : 0;
 	rect.y = (this->handPoint[handID].p.y >= this->handOffset)? (this->handPoint[handID].p.y - this->handOffset) : 0;
-	rect.height = 190;
-	rect.width = 190;
+	rect.height = this->handOffset<<1;
+	rect.width = this->handOffset<<1;
+	//rect.height = 150;
+	//rect.width = 150;
 
 	rect.x = (rect.x + rect.width < WIDTH)? rect.x : WIDTH - rect.width;
 	rect.y = (rect.y + rect.height < HEIGHT)? rect.y : HEIGHT - rect.height;
@@ -166,19 +167,24 @@ void HandSegm::HandSegmentation(nite::HandId handID)
 	//IplImage* img_t2 = cvCreateImage(cvSize(W, H), this->pImg->depth, this->pImg->nChannels);
 	//cvZero(img_t2);
 
+	int t_depthTh2 = ( handPoint[handID].d + (openni::DepthPixel)(100000/handPoint[handID].d ));
+	int t_maxCol = (rect.y + rect.height);
+	int t_maxRow = (rect.x + rect.width);
+	int t_noiseTh = rect.y + rect.height - 10000/handPoint[handID].d;
+
 	int pixelValue = 0;
-	for (y = rect.y; y <  (rect.y + rect.height); ++y)
+	for (y = rect.y; y <  t_maxCol; ++y)
 	{
-		for (x = rect.x; x <  (rect.x + rect.width); ++x, pImg_t++//, pImg_t0++
+		for (x = rect.x; x <  t_maxRow; ++x, pImg_t++//, pImg_t0++
 			)
 		{
 			pixelValue = *pImg_t;
 
 			depth = (openni::DepthPixel)pixelValue*INV_DEPTH_SCALE_FACTOR;
 
-			if ( (pixelValue != 0) && ( depth < ( handPoint[handID].d + (openni::DepthPixel)(100000/handPoint[handID].d ))) )
+			if ( (pixelValue != 0) && ( depth < t_depthTh2) )
 			{
-				if (y < (rect.y + rect.height - 10000/handPoint[handID].d))
+				if (y < t_noiseTh)
 				{	
 					*pImg_t = 255;
 				//cvSetReal2D(img_t2, y, x, 255);

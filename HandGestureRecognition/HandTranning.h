@@ -12,7 +12,7 @@
 #define FINGER_NUM 		5
 #define SAMPLE_NUM_MAX  32
 #define DEPTH_NUM		1
-#define GEST_NUM		11
+#define GEST_NUM		13
 
 extern const char* trDBC_FileName_c;
 
@@ -28,6 +28,8 @@ typedef struct TRAININGDATA_ST
 EXTERN	TRAININGDATA_ST trainingData_st;
 
 void sortArray_V(float* const arr_pc, const uint8_t arrLen_u8);
+
+void sortFingers_V(CvPoint arr_pc[], const uint8_t arrLen_u8);
 
 int createDBC_s32(const IplImage*	input_image);
 

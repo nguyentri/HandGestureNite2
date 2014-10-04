@@ -9,6 +9,7 @@
 #include "HandLabel.h"
 #include "Utilities.h"
 #include "HandGestRcg.h"
+#include "HandTranning.h"
 
 #define SHOW_HAND_CONTOUR
 
@@ -17,6 +18,9 @@ CvPoint pt0,pt,p;//center:
 CvRect	CvRectgl;
 
 HandGetureTypeSt HandGestureSt;
+
+static float removeLowestPoint_F(const HandGetureTypeSt *pHandGestureSt, const CvPoint tip);
+
 
 inline float cvDistance2D(const CvPoint* p0, const CvPoint* p1);
 
@@ -38,7 +42,6 @@ inline float cvAngleDeg2D(const CvPoint* MidP, const CvPoint* p1, const CvPoint*
 	return float(angle);
 }
 
-static float removeLowestPoint_F(const HandGetureTypeSt *pHandGestureSt, const CvPoint tip);
 
 void init_capture(HandGetureTypeSt *pHandGestureSt)
 {
@@ -46,16 +49,17 @@ void init_capture(HandGetureTypeSt *pHandGestureSt)
 
 void init_recording(HandGetureTypeSt *pHandGestureSt)
 {
-	int fps = 15, width = 190, height = 190;
-
+	int fps = 15, width = WIDTH_REC, height = HEITH_REC;
+	
 	pHandGestureSt->writer = cvCreateVideoWriter(VIDEO_FILE, VIDEO_FORMAT, fps,
-					  cvSize(width, height), 0);
+					  cvSize(width, height), 1);
 
 	if (!pHandGestureSt->writer) {
 		fprintf(stderr, "Error initializing video writer\n");
 		exit(1);
 	}
 }
+
 
 void handProcessing(void)
 {
@@ -64,17 +68,28 @@ void handProcessing(void)
 		filter_and_threshold(&HandGestureSt);
 		find_contour(&HandGestureSt);
 		//HandGestureSt.hand_image = setImgROI_v(HandGestureSt.thr_image, HandGestureSt.contour);
-		find_listPoints(&HandGestureSt);
+
 		//cvShowImage("hand", HandGestureSt.hand_image);
 		find_convex_hull(&HandGestureSt);
-		FindPalm(&HandGestureSt);		
-		fingertip(&HandGestureSt);
-		//Display the OpenCV texture map
 		//
 		HandGestureSt.contourAxisAngle = calculateTilt(HandGestureSt.thr_image);
-		nameFingers(&HandGestureSt);
-		handRecognition();
 
+		find_listPoints(&HandGestureSt);
+
+		FindPalm(&HandGestureSt);	
+
+		/*IplConvKernel* ker_c  = cvCreateStructuringElementEx(HandGestureSt.hand_radius - 5, HandGestureSt.hand_radius - 5,0,0,CV_SHAPE_ELLIPSE,NULL);
+		cvErode(HandGestureSt.thr_image,HandGestureSt.thr_image,ker_c, 0);
+		cvReleaseStructuringElement (&ker_c);
+
+		cvShowImage("error", HandGestureSt.thr_image);*/
+
+		fingertip(&HandGestureSt);
+		//Display the OpenCV texture map
+
+		//HandGestureSt.hand_center =  HandGestureSt.hand_center_mm;
+		handRecognition();
+		nameFingers(&HandGestureSt);
 		HandDisplay(&HandGestureSt);
 		//cvReleaseImage(&HandGestureSt.hand_image);
 		//cvWriteFrame(HandGestureSt.writer, HandGestureSt.image);//Write frame
@@ -93,7 +108,8 @@ void handTrainingProcessing(void)
 		FindPalm(&HandGestureSt);		
 		fingertip(&HandGestureSt);
 		//Display the OpenCV texture map
-		HandGestureSt.contourAxisAngle = calculateTilt(HandGestureSt.thr_image);
+		HandGestureSt.contourAxisAngle = calculateTilt(HandGestureSt.thr_image);		
+		//HandGestureSt.hand_center =  HandGestureSt.hand_center_mm;
 		//map to training data
 		//trainingData_st.finger_num_u8 = HandGestureSt.num_fingers;
 		
@@ -118,7 +134,7 @@ void init_HandGestureSt(HandGetureTypeSt *pHandGestureSt)
 	pHandGestureSt->hull_st = cvCreateMemStorage(0);
 	pHandGestureSt->temp_st = cvCreateMemStorage(0);
 	pHandGestureSt->handbox_str = cvCreateMemStorage(0);
-	pHandGestureSt->fingers = (CvPoint *)calloc(NUM_FINGERS + 1, sizeof(CvPoint));
+	pHandGestureSt->fingers = (CvPoint *)calloc(NUM_FINGERS, sizeof(CvPoint));
 	pHandGestureSt->defects = (CvPoint *)calloc(NUM_DEFECTS, sizeof(CvPoint));
 
 	pHandGestureSt->palmstorage = cvCreateMemStorage(0);
@@ -134,9 +150,9 @@ void init_HandGestureSt(HandGetureTypeSt *pHandGestureSt)
 
 void filter_and_threshold(HandGetureTypeSt *pHandGestureSt)
 {
-	cvDilate(pHandGestureSt->thr_image,pHandGestureSt->thr_image, pHandGestureSt->ker, 0);  //¿±µÈ 
+	cvDilate(pHandGestureSt->thr_image,pHandGestureSt->thr_image, pHandGestureSt->ker, 1);  //¿±µÈ 
 
-	cvErode(pHandGestureSt->thr_image,pHandGestureSt->thr_image, pHandGestureSt->ker, 0);
+	cvErode(pHandGestureSt->thr_image,pHandGestureSt->thr_image, pHandGestureSt->ker, 1);
 
  	cvSmooth(pHandGestureSt->thr_image, pHandGestureSt->thr_image, CV_MEDIAN, 7, 7, 0, 0);
 }
@@ -168,7 +184,7 @@ void find_contour(HandGetureTypeSt *pHandGestureSt)
 	if (contour) {
 		pHandGestureSt->Orgcontour = contour;
 		contour = cvApproxPoly(contour, sizeof(CvContour),
-				       pHandGestureSt->contour_st, CV_POLY_APPROX_DP, 2,
+				       pHandGestureSt->contour_st, CV_POLY_APPROX_DP, 0.5,
 				       1);
 		pHandGestureSt->contour = contour;
 	}
@@ -183,7 +199,7 @@ void find_listPoints(HandGetureTypeSt *pHandGestureSt)
 	{
 		//Get list of points of threshold
 		pHandGestureSt->thresholdPoints.clear();
-		pHandGestureSt->thresholdPoints = getListofPointofThImg(pHandGestureSt->thr_image, pHandGestureSt->HandPoint);
+		pHandGestureSt->thresholdPoints = getListofPointofThImg(pHandGestureSt->thr_image, pHandGestureSt->hand_center_mm);
 		//cvSaveImage("ThresholdImage.JPG", resImg);
 	}
 }
@@ -307,18 +323,20 @@ void HandDisplay(HandGetureTypeSt *pHandGestureSt)
 void fingertip(HandGetureTypeSt *pHandGestureSt)
 {
     int i, j, leng_idx = 0, t_num_fig_u8 = 0;
-	float length1,length2,angle,minangle,length_tip[12] = {0}, length_figures [12] = {0};
+	float angle,minangle,length_tip[12] = {0}, length_figures [12] = {0};
     CvPoint min,minp1,minp2;
     CvPoint *p1,*p2,*p;
     int count = 0;
     bool signal = false;
-	pHandGestureSt->num_fingers = 0;
+	pHandGestureSt->num_fingers  = 0;
 
 	uint16_t contTotal =  pHandGestureSt->Orgcontour->total;
 	uint16_t contStep = pHandGestureSt->dfdisthreshold<<1;
 
 	//y=3/200*x+60
 	float thresholdAngle = float(3)*pHandGestureSt->handDepth/200 + 60;
+
+	memset(pHandGestureSt->fingers, 0, NUM_FINGERS);
 
      for(i = 0;i < contTotal; i++)
      {
@@ -363,17 +381,18 @@ void fingertip(HandGetureTypeSt *pHandGestureSt)
              if(signal)
              {
                 signal = false;
-                CvPoint l1,l2,l3;//temp1
+               // CvPoint l1,l2,l3;//temp1
 				float angelThr = cvAngleDeg2D(&min, &minp2, &pHandGestureSt->hand_center);
 				
                 length_tip[leng_idx] = cvDistance2D((const CvPoint*)&min.x, (const CvPoint*)&pHandGestureSt->hand_center);
 
-				if((angelThr < 120) 
-					&&  (min.y < (pHandGestureSt->hand_center.y + 0.5*pHandGestureSt->hand_radius))					
-					&& ( length_tip[leng_idx] > (1.4f*(float)pHandGestureSt->hand_radius))
+				if((angelThr < 90) 
+					//&&  (min.y < (pHandGestureSt->hand_center.y + 0.75*pHandGestureSt->hand_radius) )					
+					&& ( length_tip[leng_idx] > (1.2f*(float)pHandGestureSt->hand_radius))
 					//&& (min.x != (CvRectgl.x + CvRectgl.width))
 					//&& (min.y != (CvRectgl.y + CvRectgl.height))
 					//&& (min.x != CvRectgl.x)
+					&& (min.y < CvRectgl.y + CvRectgl.height - CvRectgl.height/10 )
 					)	
                 {
                     //cvCircle(pHandGestureSt->image,min,6,CV_RGB(0,255,0),-1,8,0);
@@ -395,20 +414,23 @@ void fingertip(HandGetureTypeSt *pHandGestureSt)
          }//else end
       }//for end
 
+
 	 //remove redundent points
-	 if((length_figures[0] < 2*pHandGestureSt->hand_radius) && t_num_fig_u8 == 4)
-	 {	
-		if(pHandGestureSt->image != NULL)
-		{		
-			cvCircle(pHandGestureSt->image,cvPointMove(pHandGestureSt->fingers[0], HandGestureSt.RectTopHand),8, WHITE,-1,8,0);
-		}
-		for(j = 0; j < t_num_fig_u8; j++)
-		{
-			pHandGestureSt->fingers[j] = pHandGestureSt->fingers[j+1];
-		}
-		pHandGestureSt->num_fingers--;
-		t_num_fig_u8--;
-	 }
+	 //if((cvDistance2D((const CvPoint*)&pHandGestureSt->fingers[1], (const CvPoint*)&pHandGestureSt->hand_center) < 2*pHandGestureSt->hand_radius) && t_num_fig_u8 == 4)
+	 //{	
+		//if(pHandGestureSt->image != NULL)
+		//{		
+		//	cvCircle(pHandGestureSt->image,cvPointMove(pHandGestureSt->fingers[0], HandGestureSt.RectTopHand),8, WHITE,-1,8,0);
+		//}
+		//for(j = 0; j < t_num_fig_u8; j++)
+		//{
+		//	pHandGestureSt->fingers[j] = pHandGestureSt->fingers[j+1];
+		//}
+		//pHandGestureSt->num_fingers--;
+		//t_num_fig_u8--;
+	 //}
+ 
+	sortFingers_V(HandGestureSt.fingers, 5);
 
 	 //{
 		// int angle = 0;
@@ -450,6 +472,7 @@ void fingertip(HandGetureTypeSt *pHandGestureSt)
 	//	}
 	//	else{}
 	//}
+
 }
 
 void FindPalm(HandGetureTypeSt *pHandGestureSt)
@@ -471,45 +494,50 @@ std::vector<CvPoint> getListofPointofThImg(IplImage* pThImg, CvPoint handPoint)
 	std::vector<CvPoint> poinList;
 	poinList.clear();
 	double pointVal;
-//	CvPoint pointCoo;
+	CvPoint pointCoo;
 	CvPoint	handPointShifted;
 
-	handPointShifted.x = handPoint.x - HandGestureSt.RectTopHand.x;
-	handPointShifted.y = handPoint.y - HandGestureSt.RectTopHand.y;
+	int idxrow = 0;
+	int idxcol = 0;
 
- 	CvRectgl = cvBoundingRect((CvSeq*)HandGestureSt.contour);
+	handPointShifted.x = handPoint.x;
+	handPointShifted.y = handPoint.y;
+
+ 	CvRectgl = cvBoundingRect((CvSeq*)HandGestureSt.Orgcontour);
 	//Draw box of hand
 	CvPoint p1 = cvPoint(CvRectgl.x, CvRectgl.y);
 	CvPoint p2 = cvPoint(CvRectgl.x + CvRectgl.width, CvRectgl.y + CvRectgl.height);
 
+	int threshold = HandGestureSt.dfdisthreshold;
+
 	//cvRectangle(CvArr* img, CvPoint pt1, CvPoint pt2, CvScalar color, int thickness=1, int line_type=8, int shift=0 )
 	cvRectangle(HandGestureSt.image, cvPointMove(p1, HandGestureSt.RectTopHand), cvPointMove(p2, HandGestureSt.RectTopHand), GREEN, 1); 
 
-	int startRow = (CvRectgl.width>>1) > 20 ? handPointShifted.x - 20 : 0;
-	int endRow = (CvRectgl.width>>1) > 20 ? handPointShifted.x + 20 : handPointShifted.x + (CvRectgl.width>>1);
+	//int startRow = (CvRectgl.width>>1) > 20 ? handPointShifted.x - 20 : 0;
+	//int endRow = (CvRectgl.width>>1) > 20 ? handPointShifted.x + 20 : handPointShifted.x + (CvRectgl.width>>1);
 
 
 	IplImage* temp = cvCreateImage(cvGetSize(HandGestureSt.thr_image),HandGestureSt.thr_image->depth,  HandGestureSt.thr_image->nChannels);
 	cvZero(temp);
-
-	for(int idxcol = CvRectgl.y; idxcol < CvRectgl.y + CvRectgl.height; ++idxcol)
+	//int idxrow = CvRectgl.x ; idxrow < CvRectgl.x + CvRectgl.width; ++idxrow
+	for(idxrow = CvRectgl.x ; idxrow < CvRectgl.x + CvRectgl.width; ++idxrow)
 	{
-		//pointCoo.x = idxrow;
-		for(int idxrow = CvRectgl.x ; idxrow < CvRectgl.x + CvRectgl.width; ++idxrow)
+		pointCoo.x = idxrow;
+		for(idxcol = CvRectgl.y; idxcol < CvRectgl.y + CvRectgl.height; ++idxcol)
 		{
-			//pointCoo.y = idxcol;
-			pointVal = cvGetReal2D(pThImg, idxrow, idxcol);
+			pointCoo.y = idxcol;
+			pointVal = cvGetReal2D(pThImg, idxcol, idxrow);
 			//if(pointCoo.x < armcenter.x + 10 && pointCoo.x < armcenter.x - 10  && *pImgData == 255)
-			if(pointVal == 255// && cvDistance2D(&handPointShifted, &pointCoo) < 30
+			if(pointVal == 255 && cvDistance2D(&pointCoo, &handPointShifted) < (threshold<<2)
 				)
 			{
-				poinList.push_back(cvPoint(idxcol, idxrow));
-				cvSetReal2D(temp, idxrow, idxcol, pointVal);
+				poinList.push_back(cvPoint(idxrow, idxcol));
+				cvSetReal2D(temp, idxcol, idxrow, pointVal);
 			}
 			else
 			{
 				//poinList.push_back(cvPoint(idxrow, idxcol));
-				cvSetReal2D(temp, idxrow, idxcol, 128);
+				cvSetReal2D(temp, idxcol, idxrow, 128);
 			}
 		}
 	}

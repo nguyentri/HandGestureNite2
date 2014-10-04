@@ -10,7 +10,7 @@ PalmFinder::PalmFinder(HandGetureTypeSt *contour)
 	InitializeInstanceFields();
 	this->searchRadius = 4;
 	this->contourReduction = 8;
-	this->contour = contour;
+	this->contour = (const HandGetureTypeSt* ) contour;
 	resultpointer = new Palm();
 }
 
@@ -20,7 +20,7 @@ Palm* PalmFinder::FindCenter()
 //C# TO C++ CONVERTER WARNING: C# to C++ Converter converted the original 'null' assignment to a call to 'delete', but you should review memory allocation of all CvPointer variables in the converted code:
 	this->FindCenterFromCandidates();
 	CvPoint location = this->resultpointer->getLocation();
-//	this->IncreaseAccuracy(&location, contour);
+	this->IncreaseAccuracy(&location, contour);
 	return resultpointer;
 }
 
@@ -33,10 +33,10 @@ void PalmFinder::FindCenterFromCandidates()
 	double result = DBL_MAX;
 	CvPoint* contCvPoint;
 
-	for(int index = 0; index < HandGestureSt.thresholdPoints.size(); index++)
+	for(uint32_t index = 0; index < HandGestureSt.thresholdPoints.size(); index++)
 	{
 		result = DBL_MAX;
-		for (int idx = 0; idx < HandGestureSt.contour->total; idx++)
+		for (uint32_t idx = 0; idx < HandGestureSt.contour->total; idx++)
 		{
 			contCvPoint = (CvPoint*)cvGetSeqElem(HandGestureSt.contour ,idx);
 			if((HandGestureSt.thresholdPoints[index].x == contCvPoint->x) && (HandGestureSt.thresholdPoints[index].y == contCvPoint->y))
@@ -54,7 +54,7 @@ void PalmFinder::FindCenterFromCandidates()
 
 	double maxDistance = 0;
 	int maxIndex = -1;
-	for (int index = 0; index < HandGestureSt.thresholdPoints.size(); index++)
+	for (uint32_t index = 0; index < HandGestureSt.thresholdPoints.size(); index++)
 	{
 		if (distances[index] > maxDistance)
 		{
@@ -68,9 +68,11 @@ void PalmFinder::FindCenterFromCandidates()
 	}
 }
 
-void PalmFinder::IncreaseAccuracy(CvPoint *center, HandGetureTypeSt *contour)
+void PalmFinder::IncreaseAccuracy(CvPoint *center, const HandGetureTypeSt const *contour)
 {
-	auto newCandidateCvPoints = std::vector<CvPoint>();
+	//auto newCandidateCvPoints = std::vector<CvPoint>();
+
+	HandGestureSt.thresholdPoints.clear();
 
 	for (int x = -this->searchRadius; x <= this->searchRadius; x++)
 	{
@@ -78,11 +80,11 @@ void PalmFinder::IncreaseAccuracy(CvPoint *center, HandGetureTypeSt *contour)
 		{
 			if (x != 0 && y != 0)
 			{
-				newCandidateCvPoints.push_back(cvPoint(center->x + x, center->y + y));
+				HandGestureSt.thresholdPoints.push_back(cvPoint(center->x + x, center->y + y));
 			}
 		}
 	}
-//	this->FindCenterFromCandidates();
+	this->FindCenterFromCandidates();
 }
 
 double PalmFinder::FindMaxDistance(CvPoint candidate)
@@ -101,7 +103,7 @@ double PalmFinder::FindMaxDistance(CvPoint candidate)
 
 void PalmFinder::InitializeInstanceFields()
 {
-	contourReduction = 0;
+	contourReduction = 5;
 	searchRadius = 0;
 }
 

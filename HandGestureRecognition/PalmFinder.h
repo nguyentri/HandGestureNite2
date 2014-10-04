@@ -13,7 +13,7 @@ class PalmFinder
 		float contourReduction;
 		int searchRadius;
 
-		HandGetureTypeSt* contour;
+		const HandGetureTypeSt* contour;
 
 	public:
 		PalmFinder(HandGetureTypeSt *contour);
@@ -23,7 +23,7 @@ class PalmFinder
 	private:
 		void FindCenterFromCandidates();
 
-		void IncreaseAccuracy(CvPoint *center, HandGetureTypeSt *contour);
+		void IncreaseAccuracy(CvPoint *center, const HandGetureTypeSt const *contour);
 
 		double FindMaxDistance(CvPoint candidate);
 

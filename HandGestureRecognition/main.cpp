@@ -33,7 +33,7 @@ int main(int argc, char** argv)
 	}
 	
 	/*Hand processing initialization. */
-	init_recording(&HandGestureSt);
+	//init_recording(&HandGestureSt);
 	//init_windows();
 	init_HandGestureSt(&HandGestureSt);
 
@@ -77,7 +77,8 @@ int main(int argc, char** argv)
 					HandGestureSt.RectTopHand = HandSegmObj.RectTop;
 					//Call hand processing
 					handProcessing();
-					
+					//Display Img
+					HandViewerObj.DisPlayImg(HandSegmObj.pThImg);
 					#ifdef GETSAMPLE
 					{
 						HandViewerObj.DisPlayImg(HandSegmObj.pThImg);
@@ -93,6 +94,10 @@ int main(int argc, char** argv)
 						fprintf(depth_file, "%d,", HandSegmObj.handPoint[0].d);
 
 						fclose(depth_file);
+					}
+					#else
+					{
+						//cvWriteFrame(HandGestureSt.writer, HandViewerObj.pDisplayImg);//Write frame
 					}
 					#endif
 				}
